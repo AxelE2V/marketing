@@ -752,11 +752,10 @@
       configurations: [],
       currentConfig: null,
       sendInterval: null,
+      idleTimeout: null,
 
       init() {
         this.captureConfig();
-        // Envoyer les données toutes les 30 secondes
-        this.sendInterval = setInterval(() => this.send(), 30000);
         // Capturer à la fermeture (beforeunload) et changement d'onglet (visibilitychange)
         window.addEventListener('beforeunload', () => this.send(true));
         document.addEventListener('visibilitychange', () => {
@@ -798,6 +797,12 @@
 
       onSliderChange() {
         this.captureConfig();
+        // Reset le timer d'inactivité - envoyer après 10s sans changement
+        clearTimeout(this.idleTimeout);
+        this.idleTimeout = setTimeout(() => {
+          console.log('[Tracker] 10s idle - sending data');
+          this.send(false);
+        }, 10000);
       },
 
       getPayload(isFinal = false) {
