@@ -747,18 +747,18 @@
       sessionId: crypto.randomUUID(),
       userId: new URLSearchParams(window.location.search).get('user') || 'anonymous',
       startTime: Date.now(),
-      configHistory: [],        // Toutes les configs visitées
+      configHistory: [],
       currentConfig: null,
-      debounceTimeout: null,
+      stableTimeout: null,
       hasInteracted: false,
-      hasSent: false,
+      lastSentStateStr: null,
 
       init() {
         this.captureConfig();
-        // Envoyer uniquement à la fermeture de page
-        window.addEventListener('beforeunload', () => this.sendFinal());
+        // Envoyer aussi à la fermeture de page
+        window.addEventListener('beforeunload', () => this.send(true));
         document.addEventListener('visibilitychange', () => {
-          if (document.visibilityState === 'hidden') this.sendFinal();
+          if (document.visibilityState === 'hidden') this.send(true);
         });
         console.log(`[Tracker] Session started for user: ${this.userId}`);
       },
@@ -789,22 +789,24 @@
 
       onSliderChange() {
         this.hasInteracted = true;
-        // Debounce 5 secondes : capturer seulement après stabilisation
-        clearTimeout(this.debounceTimeout);
-        this.debounceTimeout = setTimeout(() => {
+        // Reset le timer : envoyer après 10s de stabilité
+        clearTimeout(this.stableTimeout);
+        this.stableTimeout = setTimeout(() => {
           this.captureConfig();
-          console.log('[Tracker] Config captured after 5s stability');
-        }, 5000);
+          this.send(false);
+        }, 10000);
       },
 
-      buildPayload() {
+      buildPayload(isFinal) {
         // Finaliser la config courante
         if (this.currentConfig) {
           this.currentConfig.durationMs = Date.now() - this.currentConfig.timestamp;
           this.configHistory.push({...this.currentConfig});
+          this.currentConfig = null;
         }
 
         const totalSessionMs = Date.now() - this.startTime;
+        const finalConfig = this.configHistory.length > 0 ? this.configHistory[this.configHistory.length - 1] : null;
 
         return {
           sessionId: this.sessionId,
@@ -814,34 +816,42 @@
           totalSessionSeconds: Math.round(totalSessionMs / 1000),
           totalChanges: this.configHistory.length,
           configHistory: this.configHistory,
-          finalConfig: this.configHistory.length > 0 ? this.configHistory[this.configHistory.length - 1] : null
+          finalConfig: finalConfig,
+          isFinal: isFinal
         };
       },
 
-      sendFinal() {
-        if (this.hasSent) return;
+      send(isFinal = false) {
         if (!this.hasInteracted) {
           console.log('[Tracker] No interaction - nothing to send');
           return;
         }
 
-        this.hasSent = true;
-        const payload = this.buildPayload();
+        // Éviter les doublons : ne pas renvoyer si config identique
+        const currentStateStr = JSON.stringify(state);
+        if (!isFinal && this.lastSentStateStr === currentStateStr) {
+          console.log('[Tracker] Config unchanged - skipping');
+          return;
+        }
+        this.lastSentStateStr = currentStateStr;
+
+        const payload = this.buildPayload(isFinal);
 
         const formData = new URLSearchParams();
         formData.append('data', JSON.stringify(payload));
 
-        if (navigator.sendBeacon) {
+        if (isFinal && navigator.sendBeacon) {
           navigator.sendBeacon(this.ENDPOINT, formData);
         } else {
           fetch(this.ENDPOINT, {
             method: 'POST',
             body: formData,
             keepalive: true
-          }).catch(err => console.log('[Tracker] Send error:', err));
+          }).then(() => console.log('[Tracker] Sent successfully'))
+            .catch(err => console.log('[Tracker] Send error:', err));
         }
 
-        console.log('[Tracker] Session data sent:', payload);
+        console.log('[Tracker] Data sent:', isFinal ? 'FINAL' : 'intermediate', payload);
       }
     };
 
