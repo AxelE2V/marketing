@@ -772,8 +772,8 @@
         // Si on avait une config précédente, calculer sa durée
         if (this.currentConfig) {
           this.currentConfig.durationSeconds = Math.round((now - this.currentConfig.timestamp) / 1000);
-          // Ne garder que les configs où l'utilisateur est resté > 2 secondes
-          if (this.currentConfig.durationSeconds >= 2) {
+          // Ne garder que les configs où l'utilisateur est resté > 10 secondes
+          if (this.currentConfig.durationSeconds >= 10) {
             this.configurations.push({...this.currentConfig});
           }
         }
@@ -804,9 +804,8 @@
         // Finaliser la config courante
         if (this.currentConfig) {
           this.currentConfig.durationSeconds = Math.round((Date.now() - this.currentConfig.timestamp) / 1000);
-          // Toujours capturer la config finale (ce que l'utilisateur voit à l'écran)
-          // Pour les autres, ne garder que si > 2 secondes
-          if (isFinal || this.currentConfig.durationSeconds >= 2) {
+          // Garder si: config finale OU dwell time > 10 secondes
+          if (isFinal || this.currentConfig.durationSeconds >= 10) {
             this.currentConfig.isFinalConfig = isFinal;
             this.configurations.push({...this.currentConfig});
           }
