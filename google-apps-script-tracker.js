@@ -47,9 +47,10 @@ function doPost(e) {
         // Inputs
         'PRN Hours/Week', 'PRN Hourly Rate (£)', 'Missed PRN Rate (%)',
         'Monthly Tonnage (t)', 'PRN Value/Tonne (£)', 'Automation Reduction (%)',
-        'Incidents/Year', 'Avg Incident Cost (£)', 'Incident Reduction (%)'
+        'Incidents/Year', 'Avg Incident Cost (£)', 'Incident Reduction (%)',
+        'Final Config'
       ]);
-      configsSheet.getRange(1, 1, 1, 18).setFontWeight('bold');
+      configsSheet.getRange(1, 1, 1, 19).setFontWeight('bold');
     }
 
     // Feuille "Users" - résumé par utilisateur
@@ -104,7 +105,8 @@ function doPost(e) {
           config.inputs.automationReduction,
           config.inputs.contaminationIncidentsPerYear,
           config.inputs.avgIncidentCost,
-          config.inputs.incidentReduction
+          config.inputs.incidentReduction,
+          config.isFinalConfig ? 'YES' : ''
         ]);
       });
     }

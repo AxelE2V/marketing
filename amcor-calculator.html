@@ -755,10 +755,13 @@
 
       init() {
         this.captureConfig();
-        // Envoyer les données toutes les 30 secondes et à la fermeture
+        // Envoyer les données toutes les 30 secondes
         this.sendInterval = setInterval(() => this.send(), 30000);
+        // Capturer à la fermeture (beforeunload) et changement d'onglet (visibilitychange)
         window.addEventListener('beforeunload', () => this.send(true));
-        // Envoyer aussi après 5 secondes d'inactivité sur un changement
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'hidden') this.send(true);
+        });
         console.log(`[Tracker] Session started for user: ${this.userId}`);
       },
 
@@ -801,7 +804,10 @@
         // Finaliser la config courante
         if (this.currentConfig) {
           this.currentConfig.durationSeconds = Math.round((Date.now() - this.currentConfig.timestamp) / 1000);
-          if (this.currentConfig.durationSeconds >= 2) {
+          // Toujours capturer la config finale (ce que l'utilisateur voit à l'écran)
+          // Pour les autres, ne garder que si > 2 secondes
+          if (isFinal || this.currentConfig.durationSeconds >= 2) {
+            this.currentConfig.isFinalConfig = isFinal;
             this.configurations.push({...this.currentConfig});
           }
         }
