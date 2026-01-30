@@ -752,7 +752,9 @@
       configurations: [],
       currentConfig: null,
       idleTimeout: null,
+      debounceTimeout: null,
       hasInteracted: false,
+      lastSentState: null,  // Pour éviter d'envoyer des doublons
 
       init() {
         this.captureConfig();
@@ -797,8 +799,14 @@
 
       onSliderChange() {
         this.hasInteracted = true;
-        this.captureConfig();
-        // Reset le timer d'inactivité - envoyer après 10s sans changement
+
+        // Debounce: attendre 500ms après le dernier mouvement avant de capturer
+        clearTimeout(this.debounceTimeout);
+        this.debounceTimeout = setTimeout(() => {
+          this.captureConfig();
+        }, 500);
+
+        // Reset le timer d'inactivité - envoyer 10s après le dernier changement
         clearTimeout(this.idleTimeout);
         this.idleTimeout = setTimeout(() => {
           console.log('[Tracker] 10s idle - sending data');
@@ -869,6 +877,14 @@
           console.log('[Tracker] No interaction - data not sent');
           return;
         }
+
+        // Ne pas envoyer si la config n'a pas changé depuis le dernier envoi
+        const currentStateStr = JSON.stringify(state);
+        if (!isFinal && this.lastSentState === currentStateStr) {
+          console.log('[Tracker] Config unchanged - skipping duplicate');
+          return;
+        }
+        this.lastSentState = currentStateStr;
 
         const payload = this.getPayload(isFinal);
 
