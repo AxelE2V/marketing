@@ -669,6 +669,7 @@
         el.addEventListener('input', (e) => {
           state[e.target.dataset.key] = parseFloat(e.target.value);
           updateValues();
+          if (typeof Tracker !== 'undefined') Tracker.onSliderChange();
         });
       });
     }
@@ -739,7 +740,141 @@
       if (breakdown) breakdown.classList.toggle('show');
     }
 
+    // ===== TRACKING SYSTEM =====
+    const Tracker = {
+      // IMPORTANT: Remplacez cette URL par votre Google Apps Script URL après déploiement
+      ENDPOINT: 'https://script.google.com/macros/s/AKfycbyAvmN9tIlAKwTwi9Pf6hC09Awa_BjGh7elWYDxONWZS45RMVxJTfmZRF08o_2ILoDI/exec',
+
+      sessionId: crypto.randomUUID(),
+      userId: new URLSearchParams(window.location.search).get('user') || 'anonymous',
+      startTime: Date.now(),
+      lastChangeTime: Date.now(),
+      configurations: [],
+      currentConfig: null,
+      sendInterval: null,
+
+      init() {
+        this.captureConfig();
+        // Envoyer les données toutes les 30 secondes et à la fermeture
+        this.sendInterval = setInterval(() => this.send(), 30000);
+        window.addEventListener('beforeunload', () => this.send(true));
+        // Envoyer aussi après 5 secondes d'inactivité sur un changement
+        console.log(`[Tracker] Session started for user: ${this.userId}`);
+      },
+
+      captureConfig() {
+        const now = Date.now();
+        const c = calculate();
+
+        // Si on avait une config précédente, calculer sa durée
+        if (this.currentConfig) {
+          this.currentConfig.durationSeconds = Math.round((now - this.currentConfig.timestamp) / 1000);
+          // Ne garder que les configs où l'utilisateur est resté > 2 secondes
+          if (this.currentConfig.durationSeconds >= 2) {
+            this.configurations.push({...this.currentConfig});
+          }
+        }
+
+        // Nouvelle configuration courante
+        this.currentConfig = {
+          timestamp: now,
+          timestampISO: new Date(now).toISOString(),
+          durationSeconds: 0,
+          inputs: {...state},
+          results: {
+            totalAnnualSavings: Math.round(c.totalAnnualSavings),
+            prnHoursSaved: Math.round(c.prnHoursSaved),
+            incidentsAvoided: c.incidentsAvoided,
+            prnRecovered: Math.round(c.prnRecovered),
+            totalCurrentCost: Math.round(c.totalCurrentCost)
+          }
+        };
+
+        this.lastChangeTime = now;
+      },
+
+      onSliderChange() {
+        this.captureConfig();
+      },
+
+      getPayload(isFinal = false) {
+        // Finaliser la config courante
+        if (this.currentConfig) {
+          this.currentConfig.durationSeconds = Math.round((Date.now() - this.currentConfig.timestamp) / 1000);
+          if (this.currentConfig.durationSeconds >= 2) {
+            this.configurations.push({...this.currentConfig});
+          }
+        }
+
+        const payload = {
+          sessionId: this.sessionId,
+          userId: this.userId,
+          sessionStart: new Date(this.startTime).toISOString(),
+          totalSessionSeconds: Math.round((Date.now() - this.startTime) / 1000),
+          isFinalEvent: isFinal,
+          configurations: this.configurations,
+          // Résumé pour faciliter l'analyse
+          summary: this.getSummary()
+        };
+
+        // Reset pour le prochain envoi (garder seulement la config courante)
+        this.configurations = [];
+        this.captureConfig();
+
+        return payload;
+      },
+
+      getSummary() {
+        if (this.configurations.length === 0) return null;
+
+        // Trouver la config avec le plus long dwell time
+        const longestDwell = this.configurations.reduce((max, c) =>
+          c.durationSeconds > max.durationSeconds ? c : max
+        , this.configurations[0]);
+
+        // Ranges observés
+        const savings = this.configurations.map(c => c.results.totalAnnualSavings);
+
+        return {
+          configCount: this.configurations.length,
+          longestDwellSeconds: longestDwell.durationSeconds,
+          longestDwellSavings: longestDwell.results.totalAnnualSavings,
+          longestDwellInputs: longestDwell.inputs,
+          savingsRange: {
+            min: Math.min(...savings),
+            max: Math.max(...savings)
+          }
+        };
+      },
+
+      send(isFinal = false) {
+        if (this.ENDPOINT === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
+          console.log('[Tracker] Endpoint not configured - data not sent');
+          return;
+        }
+
+        const payload = this.getPayload(isFinal);
+
+        // Utiliser sendBeacon pour les événements de fermeture (plus fiable)
+        if (isFinal && navigator.sendBeacon) {
+          navigator.sendBeacon(this.ENDPOINT, JSON.stringify(payload));
+        } else {
+          fetch(this.ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            keepalive: true
+          }).catch(err => console.log('[Tracker] Send error:', err));
+        }
+
+        console.log('[Tracker] Data sent:', payload);
+      }
+    };
+
+    // ===== END TRACKING =====
+
     render();
+    Tracker.init();
   </script>
 </body>
 </html>
