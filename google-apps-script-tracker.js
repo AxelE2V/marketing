@@ -19,7 +19,9 @@ const SPREADSHEET_ID = 'VOTRE_SPREADSHEET_ID_ICI';
 
 function doPost(e) {
   try {
-    const data = JSON.parse(e.postData.contents);
+    // Lire les données depuis form-urlencoded (évite les erreurs CORS)
+    const rawData = e.parameter.data;
+    const data = JSON.parse(rawData);
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
     // Feuille "Sessions" - une ligne par session

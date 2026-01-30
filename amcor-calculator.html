@@ -855,16 +855,20 @@
 
         const payload = this.getPayload(isFinal);
 
-        // Utiliser sendBeacon pour les événements de fermeture (plus fiable)
+        // Utiliser form-urlencoded pour éviter CORS preflight
+        const formData = new URLSearchParams();
+        formData.append('data', JSON.stringify(payload));
+
+        // sendBeacon pour fermeture de page, fetch sinon
         if (isFinal && navigator.sendBeacon) {
-          navigator.sendBeacon(this.ENDPOINT, JSON.stringify(payload));
+          navigator.sendBeacon(this.ENDPOINT, formData);
         } else {
           fetch(this.ENDPOINT, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
+            body: formData,
             keepalive: true
-          }).catch(err => console.log('[Tracker] Send error:', err));
+          }).then(r => console.log('[Tracker] Sent successfully'))
+            .catch(err => console.log('[Tracker] Send error:', err));
         }
 
         console.log('[Tracker] Data sent:', payload);
