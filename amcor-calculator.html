@@ -768,9 +768,13 @@
         const now = Date.now();
         const c = calculate();
 
-        // Calculer la durée de la config précédente (pour référence)
+        // Si on avait une config précédente, calculer sa durée
         if (this.currentConfig) {
           this.currentConfig.durationSeconds = Math.round((now - this.currentConfig.timestamp) / 1000);
+          // Ne garder que les configs où l'utilisateur est resté > 10 secondes
+          if (this.currentConfig.durationSeconds >= 10) {
+            this.configurations.push({...this.currentConfig});
+          }
         }
 
         // Nouvelle configuration courante
@@ -803,14 +807,15 @@
       },
 
       getPayload(isFinal = false) {
-        // Capturer uniquement la config actuelle (ce que l'utilisateur voit maintenant)
+        // Finaliser la config courante
         if (this.currentConfig) {
           this.currentConfig.durationSeconds = Math.round((Date.now() - this.currentConfig.timestamp) / 1000);
-          this.currentConfig.isFinalConfig = isFinal;
+          // Garder si: config finale OU dwell time > 10 secondes
+          if (isFinal || this.currentConfig.durationSeconds >= 10) {
+            this.currentConfig.isFinalConfig = isFinal;
+            this.configurations.push({...this.currentConfig});
+          }
         }
-
-        // Une seule config par envoi : celle en cours
-        this.configurations = this.currentConfig ? [{...this.currentConfig}] : [];
 
         const payload = {
           sessionId: this.sessionId,
@@ -823,16 +828,33 @@
           summary: this.getSummary()
         };
 
+        // Reset pour le prochain envoi (garder seulement la config courante)
+        this.configurations = [];
+        this.captureConfig();
+
         return payload;
       },
 
       getSummary() {
         if (this.configurations.length === 0) return null;
-        const config = this.configurations[0];
+
+        // Trouver la config avec le plus long dwell time
+        const longestDwell = this.configurations.reduce((max, c) =>
+          c.durationSeconds > max.durationSeconds ? c : max
+        , this.configurations[0]);
+
+        // Ranges observés
+        const savings = this.configurations.map(c => c.results.totalAnnualSavings);
+
         return {
-          configCount: 1,
-          dwellSeconds: config.durationSeconds,
-          savings: config.results.totalAnnualSavings
+          configCount: this.configurations.length,
+          longestDwellSeconds: longestDwell.durationSeconds,
+          longestDwellSavings: longestDwell.results.totalAnnualSavings,
+          longestDwellInputs: longestDwell.inputs,
+          savingsRange: {
+            min: Math.min(...savings),
+            max: Math.max(...savings)
+          }
         };
       },
 
