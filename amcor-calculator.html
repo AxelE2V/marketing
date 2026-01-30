@@ -751,8 +751,8 @@
       lastChangeTime: Date.now(),
       configurations: [],
       currentConfig: null,
-      sendInterval: null,
       idleTimeout: null,
+      hasInteracted: false,
 
       init() {
         this.captureConfig();
@@ -796,6 +796,7 @@
       },
 
       onSliderChange() {
+        this.hasInteracted = true;
         this.captureConfig();
         // Reset le timer d'inactivité - envoyer après 10s sans changement
         clearTimeout(this.idleTimeout);
@@ -860,6 +861,12 @@
       send(isFinal = false) {
         if (this.ENDPOINT === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
           console.log('[Tracker] Endpoint not configured - data not sent');
+          return;
+        }
+
+        // Ne rien envoyer si l'utilisateur n'a touché aucun slider
+        if (!this.hasInteracted) {
+          console.log('[Tracker] No interaction - data not sent');
           return;
         }
 
