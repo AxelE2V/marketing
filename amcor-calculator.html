@@ -742,26 +742,23 @@
 
     // ===== TRACKING SYSTEM =====
     const Tracker = {
-      // IMPORTANT: Remplacez cette URL par votre Google Apps Script URL après déploiement
       ENDPOINT: 'https://script.google.com/macros/s/AKfycbxw3gJ6hO76wFVUeuMk5rvd3ltlvObaHdHYbGPvuCH7MKhdkRm3f7letcYFrBDadZr1/exec',
 
       sessionId: crypto.randomUUID(),
       userId: new URLSearchParams(window.location.search).get('user') || 'anonymous',
       startTime: Date.now(),
-      lastChangeTime: Date.now(),
-      configurations: [],
+      configHistory: [],        // Toutes les configs visitées
       currentConfig: null,
-      idleTimeout: null,
       debounceTimeout: null,
       hasInteracted: false,
-      lastSentState: null,  // Pour éviter d'envoyer des doublons
+      hasSent: false,
 
       init() {
         this.captureConfig();
-        // Capturer à la fermeture (beforeunload) et changement d'onglet (visibilitychange)
-        window.addEventListener('beforeunload', () => this.send(true));
+        // Envoyer uniquement à la fermeture de page
+        window.addEventListener('beforeunload', () => this.sendFinal());
         document.addEventListener('visibilitychange', () => {
-          if (document.visibilityState === 'hidden') this.send(true);
+          if (document.visibilityState === 'hidden') this.sendFinal();
         });
         console.log(`[Tracker] Session started for user: ${this.userId}`);
       },
@@ -770,141 +767,81 @@
         const now = Date.now();
         const c = calculate();
 
-        // Si on avait une config précédente, calculer sa durée
+        // Finaliser la config précédente
         if (this.currentConfig) {
-          this.currentConfig.durationSeconds = Math.round((now - this.currentConfig.timestamp) / 1000);
-          // Ne garder que les configs où l'utilisateur est resté > 10 secondes
-          if (this.currentConfig.durationSeconds >= 10) {
-            this.configurations.push({...this.currentConfig});
-          }
+          this.currentConfig.durationMs = now - this.currentConfig.timestamp;
+          this.configHistory.push({...this.currentConfig});
         }
 
-        // Nouvelle configuration courante
+        // Nouvelle config courante
         this.currentConfig = {
           timestamp: now,
-          timestampISO: new Date(now).toISOString(),
-          durationSeconds: 0,
+          durationMs: 0,
           inputs: {...state},
           results: {
             totalAnnualSavings: Math.round(c.totalAnnualSavings),
             prnHoursSaved: Math.round(c.prnHoursSaved),
             incidentsAvoided: c.incidentsAvoided,
-            prnRecovered: Math.round(c.prnRecovered),
-            totalCurrentCost: Math.round(c.totalCurrentCost)
+            prnRecovered: Math.round(c.prnRecovered)
           }
         };
-
-        this.lastChangeTime = now;
       },
 
       onSliderChange() {
         this.hasInteracted = true;
-
-        // Debounce: attendre 500ms après le dernier mouvement avant de capturer
+        // Debounce 5 secondes : capturer seulement après stabilisation
         clearTimeout(this.debounceTimeout);
         this.debounceTimeout = setTimeout(() => {
           this.captureConfig();
-        }, 500);
-
-        // Reset le timer d'inactivité - envoyer 10s après le dernier changement
-        clearTimeout(this.idleTimeout);
-        this.idleTimeout = setTimeout(() => {
-          console.log('[Tracker] 10s idle - sending data');
-          this.send(false);
-        }, 10000);
+          console.log('[Tracker] Config captured after 5s stability');
+        }, 5000);
       },
 
-      getPayload(isFinal = false) {
+      buildPayload() {
         // Finaliser la config courante
         if (this.currentConfig) {
-          this.currentConfig.durationSeconds = Math.round((Date.now() - this.currentConfig.timestamp) / 1000);
-          // Garder si: config finale OU dwell time > 10 secondes
-          if (isFinal || this.currentConfig.durationSeconds >= 10) {
-            this.currentConfig.isFinalConfig = isFinal;
-            this.configurations.push({...this.currentConfig});
-          }
+          this.currentConfig.durationMs = Date.now() - this.currentConfig.timestamp;
+          this.configHistory.push({...this.currentConfig});
         }
 
-        const payload = {
+        const totalSessionMs = Date.now() - this.startTime;
+
+        return {
           sessionId: this.sessionId,
           userId: this.userId,
           sessionStart: new Date(this.startTime).toISOString(),
-          totalSessionSeconds: Math.round((Date.now() - this.startTime) / 1000),
-          isFinalEvent: isFinal,
-          configurations: this.configurations,
-          // Résumé pour faciliter l'analyse
-          summary: this.getSummary()
-        };
-
-        // Reset pour le prochain envoi (garder seulement la config courante)
-        this.configurations = [];
-        this.captureConfig();
-
-        return payload;
-      },
-
-      getSummary() {
-        if (this.configurations.length === 0) return null;
-
-        // Trouver la config avec le plus long dwell time
-        const longestDwell = this.configurations.reduce((max, c) =>
-          c.durationSeconds > max.durationSeconds ? c : max
-        , this.configurations[0]);
-
-        // Ranges observés
-        const savings = this.configurations.map(c => c.results.totalAnnualSavings);
-
-        return {
-          configCount: this.configurations.length,
-          longestDwellSeconds: longestDwell.durationSeconds,
-          longestDwellSavings: longestDwell.results.totalAnnualSavings,
-          longestDwellInputs: longestDwell.inputs,
-          savingsRange: {
-            min: Math.min(...savings),
-            max: Math.max(...savings)
-          }
+          sessionEnd: new Date().toISOString(),
+          totalSessionSeconds: Math.round(totalSessionMs / 1000),
+          totalChanges: this.configHistory.length,
+          configHistory: this.configHistory,
+          finalConfig: this.configHistory.length > 0 ? this.configHistory[this.configHistory.length - 1] : null
         };
       },
 
-      send(isFinal = false) {
-        if (this.ENDPOINT === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
-          console.log('[Tracker] Endpoint not configured - data not sent');
-          return;
-        }
-
-        // Ne rien envoyer si l'utilisateur n'a touché aucun slider
+      sendFinal() {
+        if (this.hasSent) return;
         if (!this.hasInteracted) {
-          console.log('[Tracker] No interaction - data not sent');
+          console.log('[Tracker] No interaction - nothing to send');
           return;
         }
 
-        // Ne pas envoyer si la config n'a pas changé depuis le dernier envoi
-        const currentStateStr = JSON.stringify(state);
-        if (!isFinal && this.lastSentState === currentStateStr) {
-          console.log('[Tracker] Config unchanged - skipping duplicate');
-          return;
-        }
-        this.lastSentState = currentStateStr;
+        this.hasSent = true;
+        const payload = this.buildPayload();
 
-        const payload = this.getPayload(isFinal);
-
-        // Utiliser form-urlencoded pour éviter CORS preflight
         const formData = new URLSearchParams();
         formData.append('data', JSON.stringify(payload));
 
-        // sendBeacon pour fermeture de page, fetch sinon
-        if (isFinal && navigator.sendBeacon) {
+        if (navigator.sendBeacon) {
           navigator.sendBeacon(this.ENDPOINT, formData);
         } else {
           fetch(this.ENDPOINT, {
             method: 'POST',
             body: formData,
             keepalive: true
-          }).then(r => console.log('[Tracker] Sent successfully'))
-            .catch(err => console.log('[Tracker] Send error:', err));
+          }).catch(err => console.log('[Tracker] Send error:', err));
         }
 
-        console.log('[Tracker] Data sent:', payload);
+        console.log('[Tracker] Session data sent:', payload);
       }
     };
 

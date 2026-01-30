@@ -1,118 +1,74 @@
 /**
- * Google Apps Script pour recevoir les données de tracking du calculateur AMCore
- *
- * INSTRUCTIONS DE DÉPLOIEMENT:
- * 1. Allez sur https://script.google.com et créez un nouveau projet
- * 2. Copiez-collez ce code dans le fichier Code.gs
- * 3. Cliquez sur "Déployer" > "Nouveau déploiement"
- * 4. Choisissez "Application Web"
- * 5. Configurez:
- *    - Exécuter en tant que: "Moi"
- *    - Qui a accès: "Tout le monde"
- * 6. Cliquez sur "Déployer" et copiez l'URL générée
- * 7. Collez cette URL dans amcor-calculator.html à la place de 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE'
+ * Google Apps Script - Analyse intelligente des sessions du calculateur AMCore
+ * UNE SEULE ligne par session avec résumé complet
  */
 
-// ID de votre Google Sheet (créez-en un et copiez l'ID depuis l'URL)
-// L'URL ressemble à: https://docs.google.com/spreadsheets/d/VOTRE_ID_ICI/edit
-const SPREADSHEET_ID = 'VOTRE_SPREADSHEET_ID_ICI';
+const SPREADSHEET_ID = '1VXFNL4ocE-rOutifPWPDkXEKLwkZFw38Bh3bKX6bx_A';
 
 function doPost(e) {
   try {
-    // Lire les données depuis form-urlencoded (évite les erreurs CORS)
     const rawData = e.parameter.data;
     const data = JSON.parse(rawData);
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
-    // Feuille "Sessions" - une ligne par session
-    let sessionsSheet = ss.getSheetByName('Sessions');
-    if (!sessionsSheet) {
-      sessionsSheet = ss.insertSheet('Sessions');
-      sessionsSheet.appendRow([
-        'Timestamp', 'Session ID', 'User ID', 'Session Start',
-        'Total Duration (s)', 'Config Count', 'Longest Dwell (s)',
-        'Longest Dwell Savings (£)', 'Savings Min (£)', 'Savings Max (£)',
-        'Is Final Event'
+    // Feuille principale : "Sessions" - UNE ligne par session
+    let sheet = ss.getSheetByName('Sessions');
+    if (!sheet) {
+      sheet = ss.insertSheet('Sessions');
+      sheet.appendRow([
+        'Timestamp', 'User ID', 'Session ID',
+        'Duration (min)', 'Nb Changes',
+        // Config finale
+        'Final Savings (£)', 'Final Hours Saved', 'Final PRN Recovered (£)',
+        'Final PRN Hrs/Week', 'Final Hourly Rate (£)', 'Final Missed PRN (%)',
+        'Final Tonnage (t)', 'Final PRN Value (£)', 'Final Automation (%)',
+        'Final Incidents/Year', 'Final Incident Cost (£)', 'Final Incident Reduction (%)',
+        // Analyse comportementale
+        'Confidence (%)', 'Behavior Type', 'Exploration Range (£)',
+        'Avg Savings Explored (£)', 'Time on Final Config (s)',
+        // Tendances
+        'Tonnage Trend', 'Price Trend', 'Risk Appetite',
+        'Analysis Summary'
       ]);
-      sessionsSheet.getRange(1, 1, 1, 11).setFontWeight('bold');
+      sheet.getRange(1, 1, 1, 26).setFontWeight('bold');
+      sheet.setFrozenRows(1);
     }
 
-    // Feuille "Configurations" - une ligne par configuration testée
-    let configsSheet = ss.getSheetByName('Configurations');
-    if (!configsSheet) {
-      configsSheet = ss.insertSheet('Configurations');
-      configsSheet.appendRow([
-        'Timestamp', 'Session ID', 'User ID', 'Config Time', 'Duration (s)',
-        'Total Savings (£)', 'Hours Saved', 'Incidents Avoided', 'PRN Recovered (£)',
-        // Inputs
-        'PRN Hours/Week', 'PRN Hourly Rate (£)', 'Missed PRN Rate (%)',
-        'Monthly Tonnage (t)', 'PRN Value/Tonne (£)', 'Automation Reduction (%)',
-        'Incidents/Year', 'Avg Incident Cost (£)', 'Incident Reduction (%)',
-        'Final Config'
-      ]);
-      configsSheet.getRange(1, 1, 1, 19).setFontWeight('bold');
-    }
+    // Analyser la session
+    const analysis = analyzeSession(data);
 
-    // Feuille "Users" - résumé par utilisateur
-    let usersSheet = ss.getSheetByName('Users');
-    if (!usersSheet) {
-      usersSheet = ss.insertSheet('Users');
-      usersSheet.appendRow([
-        'User ID', 'First Seen', 'Last Seen', 'Total Sessions',
-        'Total Time (s)', 'Avg Savings Explored (£)', 'Most Likely Config Savings (£)'
-      ]);
-      usersSheet.getRange(1, 1, 1, 7).setFontWeight('bold');
-    }
-
-    const now = new Date().toISOString();
-
-    // Ajouter la session
-    if (data.summary) {
-      sessionsSheet.appendRow([
-        now,
-        data.sessionId,
-        data.userId,
-        data.sessionStart,
-        data.totalSessionSeconds,
-        data.summary.configCount,
-        data.summary.longestDwellSeconds,
-        data.summary.longestDwellSavings,
-        data.summary.savingsRange?.min,
-        data.summary.savingsRange?.max,
-        data.isFinalEvent
-      ]);
-    }
-
-    // Ajouter chaque configuration
-    if (data.configurations && data.configurations.length > 0) {
-      data.configurations.forEach(config => {
-        configsSheet.appendRow([
-          now,
-          data.sessionId,
-          data.userId,
-          config.timestampISO,
-          config.durationSeconds,
-          config.results.totalAnnualSavings,
-          config.results.prnHoursSaved,
-          config.results.incidentsAvoided,
-          config.results.prnRecovered,
-          // Inputs
-          config.inputs.prnHoursPerWeek,
-          config.inputs.prnHourlyRate,
-          config.inputs.missedPrnRate,
-          config.inputs.monthlyTonnage,
-          config.inputs.prnValuePerTonne,
-          config.inputs.automationReduction,
-          config.inputs.contaminationIncidentsPerYear,
-          config.inputs.avgIncidentCost,
-          config.inputs.incidentReduction,
-          config.isFinalConfig ? 'YES' : ''
-        ]);
-      });
-    }
-
-    // Mettre à jour le résumé utilisateur
-    updateUserSummary(usersSheet, data);
+    // Insérer UNE SEULE ligne
+    sheet.appendRow([
+      new Date().toISOString(),
+      data.userId,
+      data.sessionId,
+      Math.round(data.totalSessionSeconds / 60 * 10) / 10, // minutes avec 1 décimale
+      data.totalChanges,
+      // Config finale
+      analysis.finalConfig?.results?.totalAnnualSavings || 0,
+      analysis.finalConfig?.results?.prnHoursSaved || 0,
+      analysis.finalConfig?.results?.prnRecovered || 0,
+      analysis.finalConfig?.inputs?.prnHoursPerWeek || 0,
+      analysis.finalConfig?.inputs?.prnHourlyRate || 0,
+      analysis.finalConfig?.inputs?.missedPrnRate || 0,
+      analysis.finalConfig?.inputs?.monthlyTonnage || 0,
+      analysis.finalConfig?.inputs?.prnValuePerTonne || 0,
+      analysis.finalConfig?.inputs?.automationReduction || 0,
+      analysis.finalConfig?.inputs?.contaminationIncidentsPerYear || 0,
+      analysis.finalConfig?.inputs?.avgIncidentCost || 0,
+      analysis.finalConfig?.inputs?.incidentReduction || 0,
+      // Analyse comportementale
+      analysis.confidence,
+      analysis.behaviorType,
+      analysis.explorationRange,
+      analysis.avgSavings,
+      analysis.timeOnFinalConfig,
+      // Tendances
+      analysis.tonnageTrend,
+      analysis.priceTrend,
+      analysis.riskAppetite,
+      analysis.summary
+    ]);
 
     return ContentService
       .createTextOutput(JSON.stringify({ success: true }))
@@ -126,52 +82,155 @@ function doPost(e) {
   }
 }
 
-function updateUserSummary(sheet, data) {
-  const userId = data.userId;
-  const dataRange = sheet.getDataRange();
-  const values = dataRange.getValues();
+function analyzeSession(data) {
+  const configs = data.configHistory || [];
+  const finalConfig = data.finalConfig;
 
-  let userRow = -1;
-  for (let i = 1; i < values.length; i++) {
-    if (values[i][0] === userId) {
-      userRow = i + 1;
-      break;
-    }
+  if (configs.length === 0) {
+    return {
+      finalConfig: null,
+      confidence: 0,
+      behaviorType: 'No interaction',
+      explorationRange: 0,
+      avgSavings: 0,
+      timeOnFinalConfig: 0,
+      tonnageTrend: 'N/A',
+      priceTrend: 'N/A',
+      riskAppetite: 'N/A',
+      summary: 'User did not interact with the calculator'
+    };
   }
 
-  const now = new Date().toISOString();
+  // Extraire les valeurs pour analyse
+  const savings = configs.map(c => c.results?.totalAnnualSavings || 0);
+  const tonnages = configs.map(c => c.inputs?.monthlyTonnage || 0);
+  const incidentCosts = configs.map(c => c.inputs?.avgIncidentCost || 0);
+  const durations = configs.map(c => c.durationMs || 0);
 
-  if (userRow === -1) {
-    // Nouvel utilisateur
-    const avgSavings = data.summary ? data.summary.longestDwellSavings : 0;
-    sheet.appendRow([
-      userId,
-      now, // First seen
-      now, // Last seen
-      1,   // Total sessions
-      data.totalSessionSeconds,
-      avgSavings,
-      avgSavings // Most likely config
-    ]);
+  const totalDuration = durations.reduce((a, b) => a + b, 0);
+  const finalDuration = finalConfig?.durationMs || 0;
+
+  // Calculs statistiques
+  const minSavings = Math.min(...savings);
+  const maxSavings = Math.max(...savings);
+  const avgSavings = Math.round(savings.reduce((a, b) => a + b, 0) / savings.length);
+  const explorationRange = maxSavings - minSavings;
+
+  // Confiance : basée sur le temps passé sur la config finale vs temps total
+  const confidence = totalDuration > 0
+    ? Math.min(100, Math.round((finalDuration / totalDuration) * 100 + (configs.length < 3 ? 30 : 0)))
+    : 50;
+
+  // Type de comportement
+  let behaviorType;
+  if (configs.length <= 2) {
+    behaviorType = 'Decided';
+  } else if (configs.length <= 5) {
+    behaviorType = 'Methodical';
+  } else if (configs.length <= 10) {
+    behaviorType = 'Explorer';
   } else {
-    // Utilisateur existant - mettre à jour
-    const currentSessions = sheet.getRange(userRow, 4).getValue() || 0;
-    const currentTime = sheet.getRange(userRow, 5).getValue() || 0;
-
-    sheet.getRange(userRow, 3).setValue(now); // Last seen
-    sheet.getRange(userRow, 4).setValue(currentSessions + 1); // Sessions
-    sheet.getRange(userRow, 5).setValue(currentTime + data.totalSessionSeconds); // Total time
-
-    if (data.summary && data.summary.longestDwellSeconds > 30) {
-      // Si l'utilisateur est resté > 30s sur une config, c'est probablement sa vraie config
-      sheet.getRange(userRow, 7).setValue(data.summary.longestDwellSavings);
-    }
+    behaviorType = 'Deep Explorer';
   }
+
+  // Tendance tonnage
+  const tonnageTrend = analyzeTrend(tonnages);
+
+  // Tendance prix/économies
+  const priceTrend = analyzeTrend(savings);
+
+  // Appétit pour le risque (basé sur les coûts d'incidents explorés)
+  const avgIncidentCost = incidentCosts.reduce((a, b) => a + b, 0) / incidentCosts.length;
+  let riskAppetite;
+  if (avgIncidentCost > 150000) {
+    riskAppetite = 'High awareness';
+  } else if (avgIncidentCost > 80000) {
+    riskAppetite = 'Moderate awareness';
+  } else {
+    riskAppetite = 'Conservative';
+  }
+
+  // Résumé textuel
+  const summary = generateSummary(data, configs, finalConfig, behaviorType, confidence, explorationRange);
+
+  return {
+    finalConfig,
+    confidence,
+    behaviorType,
+    explorationRange,
+    avgSavings,
+    timeOnFinalConfig: Math.round(finalDuration / 1000),
+    tonnageTrend,
+    priceTrend,
+    riskAppetite,
+    summary
+  };
 }
 
-// Fonction pour tester le déploiement
+function analyzeTrend(values) {
+  if (values.length < 2) return 'Stable';
+
+  const first = values.slice(0, Math.ceil(values.length / 2));
+  const second = values.slice(Math.ceil(values.length / 2));
+
+  const avgFirst = first.reduce((a, b) => a + b, 0) / first.length;
+  const avgSecond = second.reduce((a, b) => a + b, 0) / second.length;
+
+  const change = (avgSecond - avgFirst) / avgFirst * 100;
+
+  if (change > 15) return 'Increasing';
+  if (change < -15) return 'Decreasing';
+  return 'Stable';
+}
+
+function generateSummary(data, configs, finalConfig, behaviorType, confidence, explorationRange) {
+  const parts = [];
+
+  // Comportement
+  if (behaviorType === 'Decided') {
+    parts.push('Quick decision maker - knew their numbers');
+  } else if (behaviorType === 'Deep Explorer') {
+    parts.push('Thoroughly explored options');
+  } else {
+    parts.push(`${behaviorType} approach`);
+  }
+
+  // Confiance
+  if (confidence >= 80) {
+    parts.push('high confidence in final config');
+  } else if (confidence >= 50) {
+    parts.push('moderate confidence');
+  } else {
+    parts.push('still exploring');
+  }
+
+  // Range exploré
+  if (explorationRange > 100000) {
+    parts.push(`wide savings range explored (£${Math.round(explorationRange/1000)}k)`);
+  }
+
+  // Config finale
+  if (finalConfig?.results?.totalAnnualSavings) {
+    parts.push(`settled on £${Math.round(finalConfig.results.totalAnnualSavings/1000)}k savings`);
+  }
+
+  // Tonnage final (indicateur de taille d'opération)
+  if (finalConfig?.inputs?.monthlyTonnage) {
+    const t = finalConfig.inputs.monthlyTonnage;
+    if (t >= 4000) {
+      parts.push('large operation');
+    } else if (t >= 2000) {
+      parts.push('medium operation');
+    } else {
+      parts.push('smaller operation');
+    }
+  }
+
+  return parts.join('. ') + '.';
+}
+
 function doGet(e) {
   return ContentService
-    .createTextOutput('Tracker endpoint is working!')
+    .createTextOutput('AMCore Tracker - Intelligent Session Analysis')
     .setMimeType(ContentService.MimeType.TEXT);
 }
