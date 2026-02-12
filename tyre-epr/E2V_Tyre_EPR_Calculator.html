@@ -1,0 +1,2081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tyre EPR Calculator — eco₂Veritas × GeoCycle</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* eco₂Veritas Brand Colors */
+      --e2v-navy: #1E3A4C;
+      --e2v-navy-dark: #152B39;
+      --e2v-orange: #E67E22;
+      --e2v-orange-light: #F5A623;
+      --e2v-blue: #3B7A9E;
+      --e2v-blue-light: #87CDDE;
+      --e2v-cream: #FAF8F5;
+      --e2v-beige: #F5F0E8;
+      --e2v-warm-gray: #6B5B4F;
+
+      /* Actor Colors */
+      --producer-color: #2C3E50;
+      --garage-color: #16A085;
+      --acopiador-color: #8E44AD;
+      --logistics-color: #2980B9;
+      --recycler-color: #27AE60;
+      --cement-color: #D35400;
+      --pyrolysis-color: #C0392B;
+      --e2v-color: #E67E22;
+
+      /* Functional Colors */
+      --pain-red: #C0392B;
+      --pain-red-light: #FEF5F4;
+      --gain-green: #1E8449;
+      --gain-green-light: #F0FAF5;
+
+      /* Borders & Shadows */
+      --border-light: rgba(30,58,76,0.08);
+      --border-subtle: rgba(30,58,76,0.04);
+      --shadow-sm: 0 1px 3px rgba(30,58,76,0.06);
+      --shadow-md: 0 4px 12px rgba(30,58,76,0.08);
+      --shadow-lg: 0 8px 24px rgba(30,58,76,0.12);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: linear-gradient(180deg, var(--e2v-beige) 0%, var(--e2v-cream) 50%, var(--e2v-beige) 100%);
+      min-height: 100vh;
+      color: var(--e2v-navy);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .container { max-width: 1400px; margin: 0 auto; padding: 32px 24px; }
+
+    /* 3.1 — TYPOGRAPHY */
+    h1, h2, h3, .section-title {
+      font-family: 'DM Sans', 'Inter', sans-serif;
+      letter-spacing: -0.02em;
+    }
+
+    /* SVG ICONS */
+    .svg-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .svg-icon svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* HEADER */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 40px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .logo {
+      height: 56px;
+      width: auto;
+    }
+    .header-content h1 {
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--e2v-navy);
+      letter-spacing: -0.02em;
+    }
+    .header-content p {
+      font-size: 14px;
+      color: var(--e2v-warm-gray);
+      margin-top: 4px;
+    }
+    .header-meta {
+      text-align: right;
+      font-size: 12px;
+      color: var(--e2v-warm-gray);
+    }
+    .header-meta .highlight {
+      color: var(--e2v-orange);
+      font-weight: 600;
+    }
+
+    /* YEAR SELECTOR */
+    .year-selector {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      padding: 16px;
+      background: linear-gradient(135deg, var(--e2v-navy) 0%, var(--e2v-navy-dark) 100%);
+      border-radius: 12px;
+    }
+    .year-btn {
+      flex: 1;
+      padding: 12px 8px;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.1);
+      color: white;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 72px;
+    }
+    .year-btn:hover {
+      background: rgba(255,255,255,0.2);
+      transform: translateY(-1px);
+    }
+    .year-btn.active {
+      background: var(--e2v-orange);
+      border-color: var(--e2v-orange-light);
+    }
+    .year-btn .year-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.2;
+      min-height: 17px;
+    }
+    .year-btn .year-volume {
+      display: block;
+      font-size: 10px;
+      opacity: 0.8;
+      margin-top: 4px;
+      line-height: 1.2;
+      min-height: 12px;
+      white-space: nowrap;
+    }
+    .year-btn .year-market {
+      display: block;
+      font-size: 10px;
+      opacity: 0.6;
+      line-height: 1.2;
+      min-height: 12px;
+    }
+
+    /* GRID LAYOUT */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 32px;
+    }
+
+    /* SIDEBAR - INPUTS */
+    .sidebar {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border-light);
+      height: fit-content;
+      position: sticky;
+      top: 24px;
+      transition: box-shadow 0.2s ease;
+    }
+    .sidebar:hover {
+      box-shadow: var(--shadow-lg);
+    }
+    .sidebar h2 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--e2v-navy);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .sidebar h2 .gear-icon {
+      width: 22px;
+      height: 22px;
+      flex-shrink: 0;
+    }
+    .sidebar h2 .gear-icon svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .input-section {
+      margin-bottom: 24px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--e2v-beige);
+    }
+    .input-section:last-child { border-bottom: none; margin-bottom: 0; }
+    .input-section h3 {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--e2v-warm-gray);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+
+    .input-group {
+      margin-bottom: 16px;
+    }
+    .input-group label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--e2v-navy);
+      margin-bottom: 8px;
+    }
+    .input-group .unit {
+      font-size: 11px;
+      color: var(--e2v-warm-gray);
+      font-weight: 400;
+    }
+
+    /* TOOLTIPS */
+    .info-tooltip {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #E3E8EE;
+      color: #6B7280;
+      font-size: 10px;
+      font-weight: 700;
+      cursor: help;
+      flex-shrink: 0;
+      transition: all 0.15s ease;
+    }
+    .info-tooltip:hover {
+      background: var(--e2v-orange);
+      color: white;
+    }
+    .info-tooltip .tooltip-text {
+      visibility: hidden;
+      opacity: 0;
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      width: 220px;
+      padding: 10px 12px;
+      background: var(--e2v-navy);
+      color: white;
+      font-size: 12px;
+      font-weight: 400;
+      line-height: 1.4;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 100;
+      transition: opacity 0.2s ease, visibility 0.2s ease;
+    }
+    .info-tooltip .tooltip-text::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 6px solid transparent;
+      border-top-color: var(--e2v-navy);
+    }
+    .info-tooltip:hover .tooltip-text {
+      visibility: visible;
+      opacity: 1;
+    }
+    /* Tooltip positioning for right edge */
+    .info-tooltip.tooltip-left .tooltip-text {
+      left: auto;
+      right: 0;
+      transform: none;
+    }
+    .info-tooltip.tooltip-left .tooltip-text::after {
+      left: auto;
+      right: 12px;
+      transform: none;
+    }
+
+    /* 3.3 — STRIPE-STYLE RANGE SLIDERS */
+    .slider-container {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .slider-wrapper {
+      flex: 1;
+      position: relative;
+      height: 20px;
+      display: flex;
+      align-items: center;
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 4px;
+      border-radius: 2px;
+      background: #E3E8EE;
+      outline: none;
+      cursor: pointer;
+      margin: 0;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: white;
+      border: 1px solid #D3D8DE;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+      transition: box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      border-color: #B0B7BF;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
+    }
+    input[type="range"]::-webkit-slider-thumb:active {
+      border-color: var(--e2v-orange);
+      box-shadow: 0 0 0 3px rgba(230,126,34,0.2);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: white;
+      border: 1px solid #D3D8DE;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+      transition: box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+    input[type="range"]::-moz-range-thumb:hover {
+      border-color: #B0B7BF;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
+    }
+    input[type="range"]::-moz-range-track {
+      height: 4px;
+      border-radius: 2px;
+      background: #E3E8EE;
+    }
+
+    .slider-value {
+      min-width: 70px;
+      text-align: right;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--e2v-navy);
+      font-family: 'DM Sans', sans-serif;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .slider-range {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 4px;
+      font-size: 11px;
+      color: #9CA3AF;
+    }
+
+    .value-display {
+      display: none;
+    }
+
+    /* MAIN CONTENT */
+    .main-content {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* 3.2 — KPI CARDS */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+    .kpi-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid var(--border-light);
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    .kpi-card.highlight::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--e2v-orange), var(--e2v-orange-light));
+    }
+    .kpi-card .label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--e2v-warm-gray);
+    }
+    .kpi-card .value {
+      font-size: 28px;
+      font-weight: 700;
+      margin-top: 8px;
+      color: var(--e2v-navy);
+      font-family: 'DM Sans', sans-serif;
+      letter-spacing: -0.02em;
+    }
+    .kpi-card.highlight .value { color: var(--e2v-orange); }
+    .kpi-card .subvalue {
+      font-size: 12px;
+      margin-top: 4px;
+      color: var(--e2v-warm-gray);
+    }
+    .kpi-card .trend {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-top: 8px;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    .kpi-card .trend.up {
+      color: var(--gain-green);
+      background: var(--gain-green-light);
+    }
+    .kpi-card .trend.down {
+      color: var(--pain-red);
+      background: var(--pain-red-light);
+    }
+
+    /* 3.4 — VALUE CHAIN */
+    .value-chain-section {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      border: 1px solid var(--border-light);
+      box-shadow: var(--shadow-md);
+    }
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--e2v-navy);
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .section-title .icon {
+      width: 32px;
+      height: 32px;
+      background: var(--e2v-orange);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      padding: 6px;
+    }
+    .section-title .icon svg {
+      width: 100%;
+      height: 100%;
+      fill: currentColor;
+    }
+
+    .chain-flow {
+      display: flex;
+      align-items: stretch;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+    .chain-actor {
+      flex: 1;
+      min-width: 150px;
+      background: var(--e2v-cream);
+      border-radius: 12px;
+      padding: 16px 12px;
+      text-align: center;
+      position: relative;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .chain-actor:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+    .chain-actor.active {
+      border-color: var(--e2v-orange);
+      background: white;
+    }
+    .chain-actor .actor-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 12px;
+      margin: 0 auto 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: transparent;
+    }
+    .chain-actor .actor-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .chain-actor .actor-icon svg {
+      width: 100%;
+      height: 100%;
+      fill: currentColor;
+    }
+    .chain-actor .actor-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--e2v-navy);
+      margin-bottom: 4px;
+    }
+    .chain-actor .actor-volume {
+      font-size: 11px;
+      color: var(--e2v-warm-gray);
+      margin-bottom: 10px;
+    }
+    .chain-actor .actor-payment {
+      font-size: 16px;
+      font-weight: 700;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .chain-actor .actor-payment.positive { color: var(--gain-green); }
+    .chain-actor .actor-payment.negative { color: var(--pain-red); }
+    .chain-actor .actor-rate {
+      font-size: 10px;
+      color: var(--e2v-warm-gray);
+      margin-top: 4px;
+    }
+
+    .chain-arrow {
+      display: flex;
+      align-items: center;
+      color: #C4C4C4;
+      padding: 0 2px;
+    }
+    .chain-arrow svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* 3.5 — DETAIL CARDS */
+    .actor-details {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-top: 24px;
+    }
+    .detail-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid var(--border-light);
+    }
+    .detail-card h4 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--e2v-navy);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .detail-card h4 .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .detail-card h4 .info-tooltip {
+      margin-left: auto;
+    }
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 13px;
+      transition: background 0.15s ease;
+      gap: 8px;
+    }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-row:hover {
+      background: rgba(30,58,76,0.02);
+      margin: 0 -8px;
+      padding-left: 8px;
+      padding-right: 8px;
+    }
+    .detail-row .label {
+      color: var(--e2v-warm-gray);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex: 1;
+    }
+    .detail-row .label .info-tooltip {
+      width: 14px;
+      height: 14px;
+      font-size: 9px;
+      flex-shrink: 0;
+    }
+    .detail-row .value {
+      font-weight: 600;
+      color: var(--e2v-navy);
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .detail-row .value.gain { color: var(--gain-green); }
+    .detail-row .value.loss { color: var(--pain-red); }
+
+    /* 3.6 — PREMIUM TABLE */
+    .comparison-section {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      border: 1px solid var(--border-light);
+      box-shadow: var(--shadow-md);
+    }
+    .table-container {
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border-light);
+    }
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .comparison-table th {
+      text-align: left;
+      padding: 14px 16px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--e2v-warm-gray);
+      background: var(--e2v-cream);
+      border-bottom: 1px solid var(--border-light);
+    }
+    .comparison-table td {
+      padding: 14px 16px;
+      font-size: 13px;
+      transition: background 0.15s ease;
+    }
+    .comparison-table tbody tr {
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .comparison-table tbody tr:last-child { border-bottom: none; }
+    .comparison-table tbody tr:nth-child(even) {
+      background: rgba(30,58,76,0.015);
+    }
+    .comparison-table tbody tr:hover {
+      background: rgba(30,58,76,0.04);
+    }
+    .comparison-table .actor-cell {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .comparison-table .actor-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .comparison-table .actor-name {
+      font-weight: 600;
+      color: var(--e2v-navy);
+    }
+    .comparison-table .positive {
+      color: var(--gain-green);
+      font-weight: 600;
+      background: var(--gain-green-light);
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    .comparison-table .negative {
+      color: var(--pain-red);
+      font-weight: 600;
+      background: var(--pain-red-light);
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+
+    /* 3.7 — TRAJECTORY GRID */
+    .trajectory-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+    .trajectory-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: 1px solid var(--border-light);
+      position: relative;
+      overflow: hidden;
+    }
+    .trajectory-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    .trajectory-card.active {
+      border-color: var(--e2v-orange);
+      box-shadow: 0 0 0 3px rgba(230,126,34,0.15);
+    }
+    .trajectory-year {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--e2v-warm-gray);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .trajectory-volume {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--e2v-navy);
+      margin: 8px 0 4px;
+      font-family: 'DM Sans', sans-serif;
+      letter-spacing: -0.02em;
+    }
+    .trajectory-market {
+      font-size: 12px;
+      color: var(--e2v-warm-gray);
+      margin-bottom: 12px;
+    }
+    .trajectory-benefit {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--gain-green);
+      font-family: 'DM Sans', sans-serif;
+    }
+    .trajectory-label {
+      font-size: 10px;
+      color: var(--e2v-warm-gray);
+      margin-top: 4px;
+    }
+    /* Progress bar showing market share */
+    .trajectory-progress {
+      height: 4px;
+      background: var(--e2v-beige);
+      border-radius: 2px;
+      margin-top: 16px;
+      overflow: hidden;
+    }
+    .trajectory-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--e2v-orange), var(--e2v-orange-light));
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+
+    /* SAVINGS CALLOUT */
+    .savings-callout {
+      background: linear-gradient(135deg, var(--gain-green) 0%, #145A32 100%);
+      color: white;
+      border-radius: 16px;
+      padding: 32px;
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 32px;
+      align-items: center;
+    }
+    .savings-callout h3 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .savings-callout p {
+      font-size: 14px;
+      opacity: 0.9;
+      line-height: 1.5;
+    }
+    .savings-callout .big-number {
+      text-align: right;
+    }
+    .savings-callout .big-number .value {
+      font-size: 48px;
+      font-weight: 700;
+      font-family: 'DM Sans', sans-serif;
+      letter-spacing: -0.02em;
+    }
+    .savings-callout .big-number .label {
+      font-size: 14px;
+      opacity: 0.8;
+    }
+
+    /* 3.9 — FOOTER */
+    .footer {
+      margin-top: 48px;
+      padding: 24px 0;
+      border-top: 1px solid var(--border-light);
+    }
+    .footer-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--e2v-warm-gray);
+    }
+    .footer-left {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    .footer-brand {
+      font-weight: 600;
+      color: var(--e2v-navy);
+    }
+    .footer-brand a {
+      color: var(--e2v-orange);
+      text-decoration: none;
+    }
+    .footer-links {
+      display: flex;
+      gap: 16px;
+    }
+    .footer-links a {
+      color: var(--e2v-warm-gray);
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+    .footer-links a:hover {
+      color: var(--e2v-orange);
+    }
+    .footer-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .footer-confidential {
+      padding: 4px 10px;
+      background: var(--pain-red-light);
+      color: var(--pain-red);
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .footer-version {
+      color: var(--e2v-warm-gray);
+    }
+
+    /* 3.10 — RESPONSIVE */
+    @media (max-width: 1024px) {
+      .main-grid { grid-template-columns: 1fr; }
+      .sidebar { position: static; }
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+      .actor-details { grid-template-columns: 1fr; }
+      .trajectory-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+      }
+      .header-meta {
+        text-align: left;
+      }
+      .chain-flow {
+        flex-wrap: wrap;
+      }
+      .chain-actor {
+        min-width: calc(50% - 12px);
+        flex: 1 1 calc(50% - 12px);
+      }
+      .chain-arrow {
+        display: none;
+      }
+      .savings-callout {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+      .savings-callout .big-number { text-align: center; }
+      .footer-content {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+      }
+      .footer-left, .footer-right {
+        flex-direction: column;
+        gap: 12px;
+      }
+    }
+    @media (max-width: 640px) {
+      .container { padding: 16px; }
+      .year-selector {
+        flex-wrap: wrap;
+      }
+      .year-btn {
+        flex: 1 1 calc(50% - 4px);
+        min-width: calc(50% - 4px);
+        padding: 10px 6px;
+      }
+      .year-btn .year-label { font-size: 12px; }
+      .year-btn .year-volume, .year-btn .year-market { font-size: 9px; }
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+      .kpi-card { padding: 16px; }
+      .kpi-card .value { font-size: 22px; }
+      .trajectory-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+      .trajectory-card { padding: 16px; }
+      .trajectory-volume { font-size: 20px; }
+      .trajectory-benefit { font-size: 16px; }
+      .detail-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+      }
+      .detail-row .value {
+        text-align: left;
+      }
+      .comparison-table {
+        font-size: 12px;
+      }
+      .comparison-table th, .comparison-table td {
+        padding: 10px 8px;
+      }
+    }
+
+    /* 3.11 — ACCESSIBILITY */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        transition: none !important;
+        animation: none !important;
+      }
+    }
+
+    /* Focus states */
+    input[type="range"]:focus {
+      outline: none;
+    }
+    input[type="range"]:focus-visible {
+      outline: 2px solid var(--e2v-orange);
+      outline-offset: 2px;
+    }
+    .year-btn:focus-visible,
+    .trajectory-card:focus-visible,
+    .chain-actor:focus-visible {
+      outline: 2px solid var(--e2v-orange);
+      outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+  <!-- SVG SPRITE (hidden) -->
+  <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+    <!-- Factory / Producer icon -->
+    <symbol id="icon-factory" viewBox="0 0 24 24">
+      <path d="M22 22H2V10l7-3v3l7-3v3l6-3v15zM4 20h16V9.17l-4 2V8.17l-7 3V8.17l-5 2.15V20zm2-8h2v6H6v-6zm4 0h2v6h-2v-6zm4 0h2v6h-2v-6zm4 0h2v6h-2v-6z"/>
+    </symbol>
+    <!-- Wrench / Garage icon -->
+    <symbol id="icon-wrench" viewBox="0 0 24 24">
+      <path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"/>
+    </symbol>
+    <!-- Package / Collector icon -->
+    <symbol id="icon-package" viewBox="0 0 24 24">
+      <path d="M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44c-.16.12-.36.18-.57.18-.21 0-.41-.06-.57-.18l-7.9-4.44A.99.99 0 0 1 3 16.5v-9c0-.38.21-.71.53-.88l7.9-4.44c.16-.12.36-.18.57-.18.21 0 .41.06.57.18l7.9 4.44c.32.17.53.5.53.88v9zM12 4.15L5 8.09l7 3.94 7-3.94-7-3.94zM5 15.91l6 3.38v-6.71L5 9.2v6.71zm14 0v-6.71l-6 3.38v6.71l6-3.38z"/>
+    </symbol>
+    <!-- Truck / Logistics icon -->
+    <symbol id="icon-truck" viewBox="0 0 24 24">
+      <path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+    </symbol>
+    <!-- Building / Cement icon -->
+    <symbol id="icon-building" viewBox="0 0 24 24">
+      <path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/>
+    </symbol>
+    <!-- Recycle icon -->
+    <symbol id="icon-recycle" viewBox="0 0 24 24">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+    </symbol>
+    <!-- Certificate / Shield icon -->
+    <symbol id="icon-certificate" viewBox="0 0 24 24">
+      <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/>
+    </symbol>
+    <!-- Chain / Link icon -->
+    <symbol id="icon-chain" viewBox="0 0 24 24">
+      <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/>
+    </symbol>
+    <!-- Chart / Analytics icon -->
+    <symbol id="icon-chart" viewBox="0 0 24 24">
+      <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
+    </symbol>
+    <!-- Chevron right icon (for arrows) -->
+    <symbol id="icon-chevron-right" viewBox="0 0 24 24">
+      <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
+    </symbol>
+    <!-- Tyre icon -->
+    <symbol id="icon-tyre" viewBox="0 0 24 24">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+    </symbol>
+    <!-- Fire / Pyrolysis icon -->
+    <symbol id="icon-fire" viewBox="0 0 24 24">
+      <path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67zM11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z"/>
+    </symbol>
+    <!-- Trend up icon -->
+    <symbol id="icon-trend-up" viewBox="0 0 24 24">
+      <path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/>
+    </symbol>
+  </svg>
+
+  <div class="container">
+    <!-- HEADER -->
+    <header class="header">
+      <div class="header-left">
+        <img src="https://raw.githubusercontent.com/AxelE2V/marketing/4c0ca85d0f577abd56821b7cd181bc45040b3184/Logo_e2V_Deep_Blue.png" alt="eco₂Veritas" class="logo">
+        <div class="header-content">
+          <h1>Tyre EPR Calculator</h1>
+          <p>Economic Model for End-of-Life Tyre Certification — Mexican Market</p>
+        </div>
+      </div>
+      <div class="header-meta">
+        <div class="highlight">eco₂Veritas × GeoCycle</div>
+        <div>February 2026</div>
+        <div id="current-scenario">Year 1 Pilot</div>
+      </div>
+    </header>
+
+    <div class="main-grid">
+      <!-- SIDEBAR INPUTS -->
+      <aside class="sidebar">
+        <h2>
+          <span class="gear-icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" fill="#1E3A4C"/>
+              <path d="M19.4 15C19.2669 15.3016 19.2272 15.6362 19.286 15.9606C19.3448 16.285 19.4995 16.5843 19.73 16.82L19.79 16.88C19.976 17.0657 20.1235 17.2863 20.2241 17.5291C20.3248 17.7719 20.3766 18.0322 20.3766 18.295C20.3766 18.5578 20.3248 18.8181 20.2241 19.0609C20.1235 19.3037 19.976 19.5243 19.79 19.71C19.6043 19.896 19.3837 20.0435 19.1409 20.1441C18.8981 20.2448 18.6378 20.2966 18.375 20.2966C18.1122 20.2966 17.8519 20.2448 17.6091 20.1441C17.3663 20.0435 17.1457 19.896 16.96 19.71L16.9 19.65C16.6643 19.4195 16.365 19.2648 16.0406 19.206C15.7162 19.1472 15.3816 19.1869 15.08 19.32C14.7842 19.4468 14.532 19.6572 14.3543 19.9255C14.1766 20.1938 14.0813 20.5082 14.08 20.83V21C14.08 21.5304 13.8693 22.0391 13.4942 22.4142C13.1191 22.7893 12.6104 23 12.08 23C11.5496 23 11.0409 22.7893 10.6658 22.4142C10.2907 22.0391 10.08 21.5304 10.08 21V20.91C10.0723 20.579 9.96512 20.258 9.77251 19.9887C9.5799 19.7194 9.31074 19.5143 9 19.4C8.69838 19.2669 8.36381 19.2272 8.03941 19.286C7.71502 19.3448 7.41568 19.4995 7.18 19.73L7.12 19.79C6.93425 19.976 6.71368 20.1235 6.47088 20.2241C6.22808 20.3248 5.96783 20.3766 5.705 20.3766C5.44217 20.3766 5.18192 20.3248 4.93912 20.2241C4.69632 20.1235 4.47575 19.976 4.29 19.79C4.10405 19.6043 3.95653 19.3837 3.85588 19.1409C3.75523 18.8981 3.70343 18.6378 3.70343 18.375C3.70343 18.1122 3.75523 17.8519 3.85588 17.6091C3.95653 17.3663 4.10405 17.1457 4.29 16.96L4.35 16.9C4.58054 16.6643 4.73519 16.365 4.794 16.0406C4.85282 15.7162 4.81312 15.3816 4.68 15.08C4.55324 14.7842 4.34276 14.532 4.07447 14.3543C3.80618 14.1766 3.49179 14.0813 3.17 14.08H3C2.46957 14.08 1.96086 13.8693 1.58579 13.4942C1.21071 13.1191 1 12.6104 1 12.08C1 11.5496 1.21071 11.0409 1.58579 10.6658C1.96086 10.2907 2.46957 10.08 3 10.08H3.09C3.42099 10.0723 3.742 9.96512 4.0113 9.77251C4.28059 9.5799 4.48572 9.31074 4.6 9C4.73312 8.69838 4.77282 8.36381 4.714 8.03941C4.65519 7.71502 4.50054 7.41568 4.27 7.18L4.21 7.12C4.02405 6.93425 3.87653 6.71368 3.77588 6.47088C3.67523 6.22808 3.62343 5.96783 3.62343 5.705C3.62343 5.44217 3.67523 5.18192 3.77588 4.93912C3.87653 4.69632 4.02405 4.47575 4.21 4.29C4.39575 4.10405 4.61632 3.95653 4.85912 3.85588C5.10192 3.75523 5.36217 3.70343 5.625 3.70343C5.88783 3.70343 6.14808 3.75523 6.39088 3.85588C6.63368 3.95653 6.85425 4.10405 7.04 4.29L7.1 4.35C7.33568 4.58054 7.63502 4.73519 7.95941 4.794C8.28381 4.85282 8.61838 4.81312 8.92 4.68H9C9.29577 4.55324 9.54802 4.34276 9.72569 4.07447C9.90337 3.80618 9.99872 3.49179 10 3.17V3C10 2.46957 10.2107 1.96086 10.5858 1.58579C10.9609 1.21071 11.4696 1 12 1C12.5304 1 13.0391 1.21071 13.4142 1.58579C13.7893 1.96086 14 2.46957 14 3V3.09C14.0013 3.41179 14.0966 3.72618 14.2743 3.99447C14.452 4.26276 14.7042 4.47324 15 4.6C15.3016 4.73312 15.6362 4.77282 15.9606 4.714C16.285 4.65519 16.5843 4.50054 16.82 4.27L16.88 4.21C17.0657 4.02405 17.2863 3.87653 17.5291 3.77588C17.7719 3.67523 18.0322 3.62343 18.295 3.62343C18.5578 3.62343 18.8181 3.67523 19.0609 3.77588C19.3037 3.87653 19.5243 4.02405 19.71 4.21C19.896 4.39575 20.0435 4.61632 20.1441 4.85912C20.2448 5.10192 20.2966 5.36217 20.2966 5.625C20.2966 5.88783 20.2448 6.14808 20.1441 6.39088C20.0435 6.63368 19.896 6.85425 19.71 7.04L19.65 7.1C19.4195 7.33568 19.2648 7.63502 19.206 7.95941C19.1472 8.28381 19.1869 8.61838 19.32 8.92V9C19.4468 9.29577 19.6572 9.54802 19.9255 9.72569C20.1938 9.90337 20.5082 9.99872 20.83 10H21C21.5304 10 22.0391 10.2107 22.4142 10.5858C22.7893 10.9609 23 11.4696 23 12C23 12.5304 22.7893 13.0391 22.4142 13.4142C22.0391 13.7893 21.5304 14 21 14H20.91C20.5882 14.0013 20.2738 14.0966 20.0055 14.2743C19.7372 14.452 19.5268 14.7042 19.4 15Z" stroke="#E67E22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          Model Parameters
+        </h2>
+
+        <!-- YEAR SELECTOR -->
+        <div class="year-selector" role="group" aria-label="Select projection year">
+          <button class="year-btn active" data-year="1" aria-pressed="true">
+            <span class="year-label">Year 1</span>
+            <span class="year-volume">13.5k&nbsp;t</span>
+            <span class="year-market">3%</span>
+          </button>
+          <button class="year-btn" data-year="2" aria-pressed="false">
+            <span class="year-label">Year 2</span>
+            <span class="year-volume">45k&nbsp;t</span>
+            <span class="year-market">10%</span>
+          </button>
+          <button class="year-btn" data-year="3" aria-pressed="false">
+            <span class="year-label">Year 3</span>
+            <span class="year-volume">112.5k&nbsp;t</span>
+            <span class="year-market">25%</span>
+          </button>
+          <button class="year-btn" data-year="5" aria-pressed="false">
+            <span class="year-label">Year 5</span>
+            <span class="year-volume">157.5k&nbsp;t</span>
+            <span class="year-market">35%</span>
+          </button>
+        </div>
+
+        <div class="input-section">
+          <h3>Volume & Market</h3>
+
+          <div class="input-group">
+            <label for="volume">
+              Annual ELT Volume
+              <span class="info-tooltip">?<span class="tooltip-text">Total tonnes of End-of-Life Tyres processed annually through the EPR system. This is the main volume driver for all calculations.</span></span>
+            </label>
+            <div class="slider-container">
+              <div class="slider-wrapper">
+                <input type="range" id="volume" min="5000" max="250000" value="13500" step="1000"
+                       aria-valuemin="5000" aria-valuemax="250000" aria-valuenow="13500">
+              </div>
+              <span class="slider-value" id="volume-display">13,500 t</span>
+            </div>
+            <div class="slider-range">
+              <span>5k t</span>
+              <span>250k t</span>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label for="participation">
+              Market Participation
+              <span class="info-tooltip">?<span class="tooltip-text">Percentage of the total Mexican ELT market (450,000 t/year) captured by this EPR program. Year 1 pilot = 3%, mature market = 35%.</span></span>
+            </label>
+            <div class="slider-container">
+              <div class="slider-wrapper">
+                <input type="range" id="participation" min="1" max="100" value="3" step="1"
+                       aria-valuemin="1" aria-valuemax="100" aria-valuenow="3">
+              </div>
+              <span class="slider-value" id="participation-display">3%</span>
+            </div>
+            <div class="slider-range">
+              <span>1%</span>
+              <span>100%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="input-section">
+          <h3>Reference Pricing</h3>
+
+          <div class="input-group">
+            <label for="coke-price">
+              Coke/Coal Price
+              <span class="info-tooltip">?<span class="tooltip-text">Market price of petroleum coke (petcoke) used as reference fuel in cement kilns. This determines the value of TDF as alternative fuel.</span></span>
+            </label>
+            <div class="slider-container">
+              <div class="slider-wrapper">
+                <input type="range" id="coke-price" min="80" max="200" value="120" step="5"
+                       aria-valuemin="80" aria-valuemax="200" aria-valuenow="120">
+              </div>
+              <span class="slider-value" id="coke-price-display">$120</span>
+            </div>
+            <div class="slider-range">
+              <span>$80</span>
+              <span>$200</span>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label for="discount">
+              Discount vs Calorific Value
+              <span class="info-tooltip">?<span class="tooltip-text">Discount applied to TDF price vs theoretical break-even based on calorific value (32.5 GJ/t for tyres vs 24 GJ/t for coke). Higher discount = lower TDF price = more savings for cement kilns.</span></span>
+            </label>
+            <div class="slider-container">
+              <div class="slider-wrapper">
+                <input type="range" id="discount" min="20" max="80" value="60" step="5"
+                       aria-valuemin="20" aria-valuemax="80" aria-valuenow="60">
+              </div>
+              <span class="slider-value" id="discount-display">60%</span>
+            </div>
+            <div class="slider-range">
+              <span>20%</span>
+              <span>80%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="input-section">
+          <h3>Processing Split</h3>
+
+          <div class="input-group">
+            <label for="recycling-share">
+              Mechanical Recycling
+              <span class="info-tooltip">?<span class="tooltip-text">Share of ELT processed into rubber granules, crumb rubber, or other recycled products (playground surfaces, athletic tracks, etc.).</span></span>
+            </label>
+            <div class="slider-container">
+              <div class="slider-wrapper">
+                <input type="range" id="recycling-share" min="0" max="80" value="25" step="5"
+                       aria-valuemin="0" aria-valuemax="80" aria-valuenow="25">
+              </div>
+              <span class="slider-value" id="recycling-share-display">25%</span>
+            </div>
+            <div class="slider-range">
+              <span>0%</span>
+              <span>80%</span>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label for="cement-share">
+              Cement Kilns (TDF)
+              <span class="info-tooltip">?<span class="tooltip-text">Share of ELT used as Tyre-Derived Fuel in cement kilns. GeoCycle processes tyres this way, replacing fossil fuels (petcoke/coal) with high-energy tyre chips.</span></span>
+            </label>
+            <div class="slider-container">
+              <div class="slider-wrapper">
+                <input type="range" id="cement-share" min="10" max="90" value="70" step="5"
+                       aria-valuemin="10" aria-valuemax="90" aria-valuenow="70">
+              </div>
+              <span class="slider-value" id="cement-share-display">70%</span>
+            </div>
+            <div class="slider-range">
+              <span>10%</span>
+              <span>90%</span>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label for="pyrolysis-share">
+              Pyrolysis
+              <span class="info-tooltip">?<span class="tooltip-text">Share of ELT processed through pyrolysis (thermal decomposition) to recover carbon black, oil, and steel. Emerging technology with higher costs.</span></span>
+            </label>
+            <div class="slider-container">
+              <div class="slider-wrapper">
+                <input type="range" id="pyrolysis-share" min="0" max="20" value="5" step="1"
+                       aria-valuemin="0" aria-valuemax="20" aria-valuenow="5">
+              </div>
+              <span class="slider-value" id="pyrolysis-share-display">5%</span>
+            </div>
+            <div class="slider-range">
+              <span>0%</span>
+              <span>20%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="input-section">
+          <h3>Operating Costs</h3>
+
+          <div class="input-group">
+            <label for="garage-cost">
+              Garage Collection Cost
+              <span class="info-tooltip">?<span class="tooltip-text">Payment to garages (vulcanizadoras) for collecting, storing, and documenting ELT. Covers handling labor, storage space, and paperwork.</span></span>
+            </label>
+            <div class="slider-container">
+              <div class="slider-wrapper">
+                <input type="range" id="garage-cost" min="20" max="100" value="45" step="5"
+                       aria-valuemin="20" aria-valuemax="100" aria-valuenow="45">
+              </div>
+              <span class="slider-value" id="garage-cost-display">$45</span>
+            </div>
+            <div class="slider-range">
+              <span>$20</span>
+              <span>$100</span>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label for="transport-cost">
+              Transport Cost
+              <span class="info-tooltip">?<span class="tooltip-text">Cost to transport ELT from collection hubs to processing facilities. Varies by distance and logistics efficiency. Mexico average: $30/t.</span></span>
+            </label>
+            <div class="slider-container">
+              <div class="slider-wrapper">
+                <input type="range" id="transport-cost" min="15" max="60" value="30" step="5"
+                       aria-valuemin="15" aria-valuemax="60" aria-valuenow="30">
+              </div>
+              <span class="slider-value" id="transport-cost-display">$30</span>
+            </div>
+            <div class="slider-range">
+              <span>$15</span>
+              <span>$60</span>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label for="certification-cost">
+              E2V Certification Fee
+              <span class="info-tooltip">?<span class="tooltip-text">eco₂Veritas fee for traceability, certification, and compliance documentation. Provides audit trail and environmental credits validation.</span></span>
+            </label>
+            <div class="slider-container">
+              <div class="slider-wrapper">
+                <input type="range" id="certification-cost" min="8" max="25" value="15" step="1"
+                       aria-valuemin="8" aria-valuemax="25" aria-valuenow="15">
+              </div>
+              <span class="slider-value" id="certification-cost-display">$15</span>
+            </div>
+            <div class="slider-range">
+              <span>$8</span>
+              <span>$25</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- MAIN CONTENT -->
+      <main class="main-content">
+        <!-- KPI CARDS -->
+        <div class="kpi-grid">
+          <div class="kpi-card highlight">
+            <div class="label">Volume Processed</div>
+            <div class="value" id="kpi-volume">13,500 t</div>
+            <div class="subvalue" id="kpi-volume-sub">Pilot Scenario</div>
+            <div class="trend up" id="kpi-volume-trend">
+              <svg width="12" height="12"><use href="#icon-trend-up"/></svg>
+              <span>3% market</span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="label">Total Eco-Fee</div>
+            <div class="value" id="kpi-ecofee">$1.6M</div>
+            <div class="subvalue" id="kpi-ecofee-sub">~$119/tonne</div>
+            <div class="trend up" id="kpi-ecofee-trend">
+              <svg width="12" height="12"><use href="#icon-trend-up"/></svg>
+              <span>vs $250 EU</span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="label">GeoCycle Savings</div>
+            <div class="value" id="kpi-savings">$1.0M</div>
+            <div class="subvalue" id="kpi-savings-sub">vs coke equivalent</div>
+            <div class="trend up" id="kpi-savings-trend">
+              <svg width="12" height="12"><use href="#icon-trend-up"/></svg>
+              <span>fuel + cert</span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="label">E2V Revenue</div>
+            <div class="value" id="kpi-e2v">$203k</div>
+            <div class="subvalue" id="kpi-e2v-sub">$15/tonne certified</div>
+            <div class="trend up" id="kpi-e2v-trend">
+              <svg width="12" height="12"><use href="#icon-trend-up"/></svg>
+              <span>~40% margin</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- VALUE CHAIN VISUALIZATION -->
+        <section class="value-chain-section">
+          <h3 class="section-title">
+            <span class="icon">
+              <svg><use href="#icon-chain"/></svg>
+            </span>
+            Value Flow — Recycling Chain
+          </h3>
+
+          <div class="chain-flow">
+            <div class="chain-actor active" data-actor="producer" tabindex="0" role="button">
+              <div class="actor-icon">
+                <img src="Producer.PNG" alt="Producer">
+              </div>
+              <div class="actor-name">Producers</div>
+              <div class="actor-volume" id="actor-producer-volume">13,500 t</div>
+              <div class="actor-payment negative" id="actor-producer-payment">-$1.6M</div>
+              <div class="actor-rate">Eco-fee paid</div>
+            </div>
+
+            <div class="chain-arrow">
+              <svg><use href="#icon-chevron-right"/></svg>
+            </div>
+
+            <div class="chain-actor" data-actor="garage" tabindex="0" role="button">
+              <div class="actor-icon">
+                <img src="Garage.PNG" alt="Garage">
+              </div>
+              <div class="actor-name">Garages</div>
+              <div class="actor-volume" id="actor-garage-volume">~450 sites</div>
+              <div class="actor-payment positive" id="actor-garage-payment">+$608k</div>
+              <div class="actor-rate">$45/t collected</div>
+            </div>
+
+            <div class="chain-arrow">
+              <svg><use href="#icon-chevron-right"/></svg>
+            </div>
+
+            <div class="chain-actor" data-actor="acopiador" tabindex="0" role="button">
+              <div class="actor-icon">
+                <img src="Collector.PNG" alt="Collector">
+              </div>
+              <div class="actor-name">Collectors</div>
+              <div class="actor-volume" id="actor-acopiador-volume">~45 hubs</div>
+              <div class="actor-payment positive" id="actor-acopiador-payment">+$162k</div>
+              <div class="actor-rate">$12/t consolidated</div>
+            </div>
+
+            <div class="chain-arrow">
+              <svg><use href="#icon-chevron-right"/></svg>
+            </div>
+
+            <div class="chain-actor" data-actor="logistics" tabindex="0" role="button">
+              <div class="actor-icon">
+                <img src="Transport.PNG" alt="Transport">
+              </div>
+              <div class="actor-name">Transport</div>
+              <div class="actor-volume" id="actor-logistics-volume">13,500 t</div>
+              <div class="actor-payment positive" id="actor-logistics-payment">+$405k</div>
+              <div class="actor-rate">$30/t transported</div>
+            </div>
+
+            <div class="chain-arrow">
+              <svg><use href="#icon-chevron-right"/></svg>
+            </div>
+
+            <div class="chain-actor" data-actor="cement" tabindex="0" role="button">
+              <div class="actor-icon">
+                <img src="Cement Kilns.PNG" alt="Cement Kilns">
+              </div>
+              <div class="actor-name">Cement Kilns</div>
+              <div class="actor-volume" id="actor-cement-volume">9,450 t TDF</div>
+              <div class="actor-payment positive" id="actor-cement-payment">+$921k</div>
+              <div class="actor-rate">Savings vs coke</div>
+            </div>
+          </div>
+
+          <!-- ACTOR DETAILS -->
+          <div class="actor-details">
+            <div class="detail-card">
+              <h4>
+                <span class="dot" style="background: var(--producer-color);"></span>
+                Producers / Importers
+                <span class="info-tooltip">?<span class="tooltip-text">Tyre manufacturers and importers who fund the EPR system. The eco-fee is passed to consumers (~$2-3 per tyre) and covers the entire recycling chain.</span></span>
+              </h4>
+              <div class="detail-row">
+                <span class="label">Volume placed on market <span class="info-tooltip">?<span class="tooltip-text">Total Mexican ELT market size. Estimated at 450,000 tonnes per year based on vehicle fleet and tyre replacement rates.</span></span></span>
+                <span class="value" id="detail-producer-volume">450,000 t</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Volume neutralized (<span id="detail-participation-pct">3</span>%) <span class="info-tooltip">?<span class="tooltip-text">Tonnes of ELT actually processed through this EPR program. The % represents market penetration.</span></span></span>
+                <span class="value" id="detail-producer-neutralized">13,500 t</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Average eco-fee <span class="info-tooltip">?<span class="tooltip-text">Total cost per tonne paid by producers. Sum of: garage + collector + transport + shredding + certification fees.</span></span></span>
+                <span class="value" id="detail-producer-rate">$119/t</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Total eco-fee paid <span class="info-tooltip">?<span class="tooltip-text">Annual payment from producers to fund the entire recycling chain. This is the main cash inflow for the EPR system.</span></span></span>
+                <span class="value loss" id="detail-producer-total">-$1,606,500</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">European benchmark <span class="info-tooltip">?<span class="tooltip-text">Eco-fee rates in Europe (Belgium example: $250-320/t). Mexico's lower costs create a competitive advantage.</span></span></span>
+                <span class="value" id="detail-producer-europe">$250-320/t</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Savings vs Europe <span class="info-tooltip">?<span class="tooltip-text">Cost advantage for producers operating in Mexico vs Europe. Lower labor and logistics costs drive the difference.</span></span></span>
+                <span class="value gain" id="detail-producer-savings">52-63%</span>
+              </div>
+            </div>
+
+            <div class="detail-card">
+              <h4>
+                <span class="dot" style="background: var(--cement-color);"></span>
+                Cement Kilns / GeoCycle
+                <span class="info-tooltip">?<span class="tooltip-text">GeoCycle (Holcim) cement plants use TDF as alternative fuel. They SAVE money by replacing expensive petcoke with free/cheap tyre chips.</span></span>
+              </h4>
+              <div class="detail-row">
+                <span class="label">TDF volume received <span class="info-tooltip">?<span class="tooltip-text">Tyre-Derived Fuel sent to cement kilns. Based on the processing split % set in parameters.</span></span></span>
+                <span class="value" id="detail-cement-volume">9,450 t</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Tyre calorific value <span class="info-tooltip">?<span class="tooltip-text">Energy content of tyres: 32.5 GJ/tonne. Higher than petcoke (24 GJ/t), making tyres an efficient fuel.</span></span></span>
+                <span class="value">32.5 GJ/t</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Coke equivalent <span class="info-tooltip">?<span class="tooltip-text">How much petcoke would provide the same energy. Calculated as: TDF × (32.5 ÷ 24) = 1.35× more coke needed.</span></span></span>
+                <span class="value" id="detail-cement-coke-equiv">12,797 t</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Coke cost avoided <span class="info-tooltip">?<span class="tooltip-text">What GeoCycle would have spent on petcoke to get the same energy. Coke equivalent × Coke price/t.</span></span></span>
+                <span class="value" id="detail-cement-coke-cost">$1,535,625</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">TDF price paid <span class="info-tooltip">?<span class="tooltip-text">What GeoCycle pays for TDF (if any). Based on discount % vs break-even price. Higher discount = cheaper TDF.</span></span></span>
+                <span class="value loss" id="detail-cement-tdf-cost">-$614,250</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Net fuel savings <span class="info-tooltip">?<span class="tooltip-text">GeoCycle's benefit: Coke cost avoided minus TDF price paid. This is pure fuel cost savings.</span></span></span>
+                <span class="value gain" id="detail-cement-savings">+$921,375</span>
+              </div>
+            </div>
+
+            <div class="detail-card">
+              <h4>
+                <span class="dot" style="background: var(--garage-color);"></span>
+                Garages / Vulcanizadoras
+                <span class="info-tooltip">?<span class="tooltip-text">Tyre shops that collect ELT from consumers. They get paid for storage, handling, and documentation instead of paying for disposal.</span></span>
+              </h4>
+              <div class="detail-row">
+                <span class="label">Estimated site count <span class="info-tooltip">?<span class="tooltip-text">Number of garages in the collection network. Calculated as: Total volume ÷ 30 tonnes/site/year average.</span></span></span>
+                <span class="value" id="detail-garage-sites">~450</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Avg volume per site <span class="info-tooltip">?<span class="tooltip-text">Typical annual ELT collection per garage. Small shops: 10-20t, medium: 30-50t, large: 80-100t.</span></span></span>
+                <span class="value" id="detail-garage-avg">30 t/year</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Handling payment <span class="info-tooltip">?<span class="tooltip-text">Payment for physical handling: receiving tyres, stacking, storing until pickup. ~75% of garage fee.</span></span></span>
+                <span class="value" id="detail-garage-handling">$34/t</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Documentation payment <span class="info-tooltip">?<span class="tooltip-text">Payment for paperwork: logging tyres, issuing receipts, traceability data entry. ~25% of garage fee.</span></span></span>
+                <span class="value" id="detail-garage-docs">$11/t</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Total garage revenue <span class="info-tooltip">?<span class="tooltip-text">Total annual payment to all garages in the network. Volume × Garage collection cost.</span></span></span>
+                <span class="value gain" id="detail-garage-total">+$607,500</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Avg revenue per site <span class="info-tooltip">?<span class="tooltip-text">What each garage earns annually. Provides income incentive to participate in the EPR program.</span></span></span>
+                <span class="value gain" id="detail-garage-per-site">+$1,350/year</span>
+              </div>
+            </div>
+
+            <div class="detail-card">
+              <h4>
+                <span class="dot" style="background: var(--e2v-color);"></span>
+                eco₂Veritas (Certification)
+                <span class="info-tooltip">?<span class="tooltip-text">eco₂Veritas provides traceability, certification, and compliance documentation. NOT a PRO—a certification platform.</span></span>
+              </h4>
+              <div class="detail-row">
+                <span class="label">Volume certified <span class="info-tooltip">?<span class="tooltip-text">Total tonnes tracked and certified through the E2V platform. Each tonne gets a unique traceability ID.</span></span></span>
+                <span class="value" id="detail-e2v-volume">13,500 t</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Certification fee <span class="info-tooltip">?<span class="tooltip-text">Per-tonne fee for traceability, audit trail, compliance certificates, and environmental credit validation.</span></span></span>
+                <span class="value">$15/t</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Certification revenue <span class="info-tooltip">?<span class="tooltip-text">Gross revenue from certification services. Volume × Certification fee per tonne.</span></span></span>
+                <span class="value gain" id="detail-e2v-cert">+$202,500</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">GeoCycle share <span class="info-tooltip">?<span class="tooltip-text">Revenue share paid to GeoCycle as strategic partner. 50% split as per partnership agreement.</span></span></span>
+                <span class="value" id="detail-e2v-geocycle">$101,250</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">E2V net revenue <span class="info-tooltip">?<span class="tooltip-text">eco₂Veritas retained revenue after GeoCycle share. Gross revenue × (1 - GeoCycle share %).</span></span></span>
+                <span class="value gain" id="detail-e2v-net">+$101,250</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Estimated margin <span class="info-tooltip">?<span class="tooltip-text">E2V profit margin after platform costs. Certification is a high-margin digital service.</span></span></span>
+                <span class="value">~40%</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- COMPARISON TABLE -->
+        <section class="comparison-section">
+          <h3 class="section-title">
+            <span class="icon">
+              <svg><use href="#icon-chart"/></svg>
+            </span>
+            Financial Flow Breakdown
+          </h3>
+
+          <div class="table-container">
+            <table class="comparison-table">
+              <thead>
+                <tr>
+                  <th>Actor</th>
+                  <th>Volume Processed</th>
+                  <th>Unit Rate</th>
+                  <th>Annual Flow</th>
+                  <th>% of Total</th>
+                </tr>
+              </thead>
+              <tbody id="comparison-tbody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- GROWTH TRAJECTORY -->
+        <section class="comparison-section">
+          <h3 class="section-title">
+            <span class="icon">
+              <svg><use href="#icon-chart"/></svg>
+            </span>
+            Growth Trajectory — 5 Year Projection
+          </h3>
+          <div class="trajectory-grid">
+            <div class="trajectory-card active" data-year="1" tabindex="0" role="button">
+              <div class="trajectory-year">Year 1</div>
+              <div class="trajectory-volume">13.5k t</div>
+              <div class="trajectory-market">3% market</div>
+              <div class="trajectory-benefit">$1.0M</div>
+              <div class="trajectory-label">GeoCycle benefit</div>
+              <div class="trajectory-progress">
+                <div class="trajectory-progress-fill" style="width: 8.6%;"></div>
+              </div>
+            </div>
+            <div class="trajectory-card" data-year="2" tabindex="0" role="button">
+              <div class="trajectory-year">Year 2</div>
+              <div class="trajectory-volume">45k t</div>
+              <div class="trajectory-market">10% market</div>
+              <div class="trajectory-benefit">$3.4M</div>
+              <div class="trajectory-label">GeoCycle benefit</div>
+              <div class="trajectory-progress">
+                <div class="trajectory-progress-fill" style="width: 28.6%;"></div>
+              </div>
+            </div>
+            <div class="trajectory-card" data-year="3" tabindex="0" role="button">
+              <div class="trajectory-year">Year 3</div>
+              <div class="trajectory-volume">112.5k t</div>
+              <div class="trajectory-market">25% market</div>
+              <div class="trajectory-benefit">$8.5M</div>
+              <div class="trajectory-label">GeoCycle benefit</div>
+              <div class="trajectory-progress">
+                <div class="trajectory-progress-fill" style="width: 71.4%;"></div>
+              </div>
+            </div>
+            <div class="trajectory-card" data-year="5" tabindex="0" role="button">
+              <div class="trajectory-year">Year 5</div>
+              <div class="trajectory-volume">157.5k t</div>
+              <div class="trajectory-market">35% market</div>
+              <div class="trajectory-benefit">$11.9M</div>
+              <div class="trajectory-label">GeoCycle benefit</div>
+              <div class="trajectory-progress">
+                <div class="trajectory-progress-fill" style="width: 100%;"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SAVINGS CALLOUT -->
+        <div class="savings-callout">
+          <div>
+            <h3>Competitive Advantage vs Europe</h3>
+            <p>The proposed eco-fee in Mexico represents significant savings compared to European rates (Belgium: $250-320/t), while providing complete value chain certification and traceability.</p>
+          </div>
+          <div class="big-number">
+            <div class="value" id="europe-savings-pct">52-63%</div>
+            <div class="label">cheaper than Europe</div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+      <div class="footer-content">
+        <div class="footer-left">
+          <div class="footer-brand">
+            Tyre EPR Calculator — <a href="https://eco2veritas.com" target="_blank">eco₂Veritas</a> × GeoCycle México
+          </div>
+          <div class="footer-links">
+            <a href="#" onclick="alert('Methodology document coming soon'); return false;">Methodology</a>
+            <a href="#" onclick="window.print(); return false;">Export PDF</a>
+          </div>
+        </div>
+        <div class="footer-right">
+          <span class="footer-confidential">Confidential</span>
+          <span class="footer-version">Model v1.2 — Feb 2026</span>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    // CONFIGURATION & CONSTANTS
+    const CONFIG = {
+      COKE_HEATING_VALUE: 24, // GJ/tonne
+      TYRE_HEATING_VALUE: 32.5, // GJ/tonne average
+      SHREDDING_COST: 17, // USD/tonne
+      ACOPIADOR_RATE: 12, // USD/tonne
+      RECYCLER_RATE: 45, // USD/tonne
+      PYROLYSIS_RATE: 45, // USD/tonne
+      EUROPE_ECOFEE_MIN: 250, // USD/tonne
+      EUROPE_ECOFEE_MAX: 320, // USD/tonne
+      GEOCYCLE_SHARE: 0.50, // 50% of certification revenue (as per transcript)
+      MEXICO_TOTAL_MARKET: 450000, // Total Mexican ELT market in tonnes/year
+    };
+
+    // YEAR PRESETS - Growth trajectory
+    const YEAR_PRESETS = {
+      1: {
+        volume: 13500,      // 3% of 450k market
+        participation: 3,
+        label: 'Year 1 Pilot',
+        description: 'Pilot phase with 50 garages'
+      },
+      2: {
+        volume: 45000,      // 10% of market
+        participation: 10,
+        label: 'Year 2 Expansion',
+        description: 'Regional expansion'
+      },
+      3: {
+        volume: 112500,     // 25% of market
+        participation: 25,
+        label: 'Year 3 Scale',
+        description: 'National scale-up'
+      },
+      5: {
+        volume: 157500,     // 35% of market
+        participation: 35,
+        label: 'Year 5 Maturity',
+        description: 'Full market penetration'
+      }
+    };
+
+    // Current selected year
+    let currentYear = 1;
+
+    // STATE - Default to Year 1 Pilot
+    let state = {
+      volume: 13500,
+      participation: 3,
+      cokePrice: 120,
+      discount: 60,
+      recyclingShare: 25,
+      cementShare: 70,
+      pyrolysisShare: 5,
+      garageCost: 45,
+      transportCost: 30,
+      certificationCost: 15,
+    };
+
+    // CALCULATIONS
+    function calculateModel() {
+      const {
+        volume, participation, cokePrice, discount,
+        recyclingShare, cementShare, pyrolysisShare,
+        garageCost, transportCost, certificationCost
+      } = state;
+
+      // Volumes
+      const totalMarketVolume = CONFIG.MEXICO_TOTAL_MARKET;
+      const recyclingVolume = volume * (recyclingShare / 100);
+      const cementVolume = volume * (cementShare / 100);
+      const pyrolysisVolume = volume * (pyrolysisShare / 100);
+
+      // Break-even calculation for TDF
+      const tyreBreakeven = cokePrice * (CONFIG.TYRE_HEATING_VALUE / CONFIG.COKE_HEATING_VALUE);
+      const tdfPrice = tyreBreakeven * (1 - discount / 100);
+
+      // Total cost per tonne (eco-fee)
+      const totalCostPerTonne = CONFIG.SHREDDING_COST + garageCost + CONFIG.ACOPIADOR_RATE + transportCost + certificationCost;
+      const ecoFee = totalCostPerTonne;
+
+      // Payments
+      const totalEcoFee = volume * ecoFee;
+      const garagePayment = volume * garageCost;
+      const acopiadorPayment = volume * CONFIG.ACOPIADOR_RATE;
+      const logisticsPayment = volume * transportCost;
+      const certificationPayment = volume * certificationCost;
+
+      // Cement savings
+      const cokeEquivalent = cementVolume * (CONFIG.TYRE_HEATING_VALUE / CONFIG.COKE_HEATING_VALUE);
+      const cokeCostAvoided = cokeEquivalent * cokePrice;
+      const tdfCost = cementVolume * tdfPrice;
+      const cementSavings = cokeCostAvoided - tdfCost;
+
+      // GeoCycle total benefit (fuel savings + certification share)
+      const geocycleCertShare = certificationPayment * CONFIG.GEOCYCLE_SHARE;
+      const geocycleTotalBenefit = cementSavings + geocycleCertShare;
+
+      // E2V revenue
+      const e2vGross = certificationPayment;
+      const e2vNet = e2vGross * (1 - CONFIG.GEOCYCLE_SHARE);
+
+      // Europe comparison
+      const europeSavingsMin = ((CONFIG.EUROPE_ECOFEE_MIN - ecoFee) / CONFIG.EUROPE_ECOFEE_MIN) * 100;
+      const europeSavingsMax = ((CONFIG.EUROPE_ECOFEE_MAX - ecoFee) / CONFIG.EUROPE_ECOFEE_MAX) * 100;
+
+      // Estimated garage count (avg 30t per garage)
+      const garageCount = Math.round(volume / 30);
+
+      return {
+        volume,
+        participation,
+        totalMarketVolume,
+        recyclingVolume,
+        cementVolume,
+        pyrolysisVolume,
+        ecoFee,
+        totalEcoFee,
+        garagePayment,
+        acopiadorPayment,
+        logisticsPayment,
+        certificationPayment,
+        cementSavings,
+        cokeEquivalent,
+        cokeCostAvoided,
+        tdfCost,
+        tdfPrice,
+        tyreBreakeven,
+        e2vGross,
+        e2vNet,
+        geocycleCertShare,
+        geocycleTotalBenefit,
+        europeSavingsMin,
+        europeSavingsMax,
+        garageCount,
+        garageCost,
+        transportCost,
+        certificationCost,
+      };
+    }
+
+    // FORMAT HELPERS
+    function formatNumber(n, decimals = 0) {
+      return new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
+      }).format(n);
+    }
+
+    function formatCurrency(n, decimals = 0) {
+      if (Math.abs(n) >= 1000000) {
+        return '$' + formatNumber(n / 1000000, 1) + 'M';
+      } else if (Math.abs(n) >= 1000) {
+        return '$' + formatNumber(n / 1000, 0) + 'k';
+      }
+      return '$' + formatNumber(n, decimals);
+    }
+
+    // UPDATE SLIDER FILL - Stripe style with e2v brand color
+    function updateSliderFill(input) {
+      const min = parseFloat(input.min);
+      const max = parseFloat(input.max);
+      const val = parseFloat(input.value);
+      const percentage = ((val - min) / (max - min)) * 100;
+      // Stripe-style: solid brand color fill (using e2v orange)
+      input.style.background = `linear-gradient(to right, #E67E22 0%, #E67E22 ${percentage}%, #E3E8EE ${percentage}%, #E3E8EE 100%)`;
+    }
+
+    // UPDATE UI
+    function updateUI() {
+      const model = calculateModel();
+
+      // KPIs
+      document.getElementById('kpi-volume').textContent = formatNumber(model.volume) + ' t';
+      document.getElementById('kpi-volume-sub').textContent =
+        model.volume <= 20000 ? 'Pilot Scenario' :
+        model.volume <= 60000 ? 'Growth Phase' :
+        model.volume <= 120000 ? 'Scale Phase' : 'Full Market';
+      document.getElementById('kpi-volume-trend').innerHTML =
+        `<svg width="12" height="12"><use href="#icon-trend-up"/></svg><span>${model.participation}% market</span>`;
+
+      document.getElementById('kpi-ecofee').textContent = formatCurrency(model.totalEcoFee);
+      document.getElementById('kpi-ecofee-sub').textContent = '~$' + formatNumber(model.ecoFee) + '/tonne';
+
+      document.getElementById('kpi-e2v').textContent = formatCurrency(model.e2vGross);
+      document.getElementById('kpi-e2v-sub').textContent = '$' + state.certificationCost + '/tonne certified';
+
+      document.getElementById('kpi-savings').textContent = formatCurrency(model.geocycleTotalBenefit);
+      document.getElementById('kpi-savings-sub').textContent = 'fuel + certification';
+
+      // Value chain actors
+      document.getElementById('actor-producer-volume').textContent = formatNumber(model.volume) + ' t';
+      document.getElementById('actor-producer-payment').textContent = '-' + formatCurrency(model.totalEcoFee);
+
+      document.getElementById('actor-garage-volume').textContent = '~' + formatNumber(model.garageCount) + ' sites';
+      document.getElementById('actor-garage-payment').textContent = '+' + formatCurrency(model.garagePayment);
+
+      document.getElementById('actor-acopiador-volume').textContent = '~' + formatNumber(Math.round(model.garageCount / 10)) + ' hubs';
+      document.getElementById('actor-acopiador-payment').textContent = '+' + formatCurrency(model.acopiadorPayment);
+
+      document.getElementById('actor-logistics-volume').textContent = formatNumber(model.volume) + ' t';
+      document.getElementById('actor-logistics-payment').textContent = '+' + formatCurrency(model.logisticsPayment);
+
+      document.getElementById('actor-cement-volume').textContent = formatNumber(model.cementVolume) + ' t TDF';
+      document.getElementById('actor-cement-payment').textContent = '+' + formatCurrency(model.cementSavings);
+
+      // Detail cards - Producers
+      document.getElementById('detail-producer-volume').textContent = formatNumber(model.totalMarketVolume) + ' t';
+      document.getElementById('detail-producer-neutralized').textContent = formatNumber(model.volume) + ' t';
+      document.getElementById('detail-participation-pct').textContent = model.participation;
+      document.getElementById('detail-producer-rate').textContent = '$' + formatNumber(model.ecoFee) + '/t';
+      document.getElementById('detail-producer-total').textContent = '-$' + formatNumber(model.totalEcoFee);
+      document.getElementById('detail-producer-savings').textContent =
+        formatNumber(model.europeSavingsMin, 0) + '-' + formatNumber(model.europeSavingsMax, 0) + '%';
+
+      // Detail cards - Cement
+      document.getElementById('detail-cement-volume').textContent = formatNumber(model.cementVolume) + ' t';
+      document.getElementById('detail-cement-coke-equiv').textContent = formatNumber(Math.round(model.cokeEquivalent)) + ' t';
+      document.getElementById('detail-cement-coke-cost').textContent = '$' + formatNumber(Math.round(model.cokeCostAvoided));
+      document.getElementById('detail-cement-tdf-cost').textContent = '-$' + formatNumber(Math.round(model.tdfCost));
+      document.getElementById('detail-cement-savings').textContent = '+$' + formatNumber(Math.round(model.cementSavings));
+
+      // Detail cards - Garages
+      document.getElementById('detail-garage-sites').textContent = '~' + formatNumber(model.garageCount);
+      document.getElementById('detail-garage-avg').textContent = formatNumber(Math.round(model.volume / model.garageCount)) + ' t/year';
+      document.getElementById('detail-garage-handling').textContent = '$' + formatNumber(Math.round(model.garageCost * 0.75)) + '/t';
+      document.getElementById('detail-garage-docs').textContent = '$' + formatNumber(Math.round(model.garageCost * 0.25)) + '/t';
+      document.getElementById('detail-garage-total').textContent = '+$' + formatNumber(Math.round(model.garagePayment));
+      document.getElementById('detail-garage-per-site').textContent = '+$' + formatNumber(Math.round(model.garagePayment / model.garageCount)) + '/year';
+
+      // Detail cards - E2V
+      document.getElementById('detail-e2v-volume').textContent = formatNumber(model.volume) + ' t';
+      document.getElementById('detail-e2v-cert').textContent = '+$' + formatNumber(Math.round(model.e2vGross));
+      document.getElementById('detail-e2v-geocycle').textContent = '$' + formatNumber(Math.round(model.geocycleCertShare));
+      document.getElementById('detail-e2v-net').textContent = '+$' + formatNumber(Math.round(model.e2vNet));
+
+      // Europe savings callout
+      document.getElementById('europe-savings-pct').textContent =
+        formatNumber(model.europeSavingsMin, 0) + '-' + formatNumber(model.europeSavingsMax, 0) + '%';
+
+      // Comparison table
+      updateComparisonTable(model);
+    }
+
+    function updateComparisonTable(model) {
+      const actors = [
+        { name: 'Producers', color: 'var(--producer-color)', volume: model.volume, rate: '-$' + formatNumber(model.ecoFee) + '/t',
+          total: model.totalEcoFee, pct: 100, negative: true },
+        { name: 'Garages', color: 'var(--garage-color)', volume: model.volume, rate: '$' + formatNumber(model.garageCost) + '/t',
+          total: model.garagePayment, pct: (model.garagePayment / model.totalEcoFee * 100) },
+        { name: 'Collectors', color: 'var(--acopiador-color)', volume: model.volume, rate: '$' + CONFIG.ACOPIADOR_RATE + '/t',
+          total: model.acopiadorPayment, pct: (model.acopiadorPayment / model.totalEcoFee * 100) },
+        { name: 'Transport', color: 'var(--logistics-color)', volume: model.volume, rate: '$' + formatNumber(model.transportCost) + '/t',
+          total: model.logisticsPayment, pct: (model.logisticsPayment / model.totalEcoFee * 100) },
+        { name: 'Shredding', color: 'var(--recycler-color)', volume: model.volume, rate: '$' + CONFIG.SHREDDING_COST + '/t',
+          total: model.volume * CONFIG.SHREDDING_COST, pct: (model.volume * CONFIG.SHREDDING_COST / model.totalEcoFee * 100) },
+        { name: 'eco₂Veritas', color: 'var(--e2v-color)', volume: model.volume, rate: '$' + formatNumber(model.certificationCost) + '/t',
+          total: model.certificationPayment, pct: (model.certificationPayment / model.totalEcoFee * 100) },
+      ];
+
+      const tbody = document.getElementById('comparison-tbody');
+      tbody.innerHTML = actors.map(actor => `
+        <tr>
+          <td>
+            <div class="actor-cell">
+              <span class="actor-dot" style="background: ${actor.color};"></span>
+              <span class="actor-name">${actor.name}</span>
+            </div>
+          </td>
+          <td>${formatNumber(actor.volume)} t</td>
+          <td>${actor.rate}</td>
+          <td><span class="${actor.negative ? 'negative' : 'positive'}">${actor.negative ? '-' : '+'}$${formatNumber(Math.round(actor.total))}</span></td>
+          <td>${formatNumber(actor.pct, 1)}%</td>
+        </tr>
+      `).join('');
+    }
+
+    // INPUT HANDLERS
+    function setupInputs() {
+      const inputs = [
+        { id: 'volume', key: 'volume', display: 'volume-display', format: v => formatNumber(v) + ' t' },
+        { id: 'participation', key: 'participation', display: 'participation-display', format: v => v + '%' },
+        { id: 'coke-price', key: 'cokePrice', display: 'coke-price-display', format: v => '$' + v },
+        { id: 'discount', key: 'discount', display: 'discount-display', format: v => v + '%' },
+        { id: 'recycling-share', key: 'recyclingShare', display: 'recycling-share-display', format: v => v + '%' },
+        { id: 'cement-share', key: 'cementShare', display: 'cement-share-display', format: v => v + '%' },
+        { id: 'pyrolysis-share', key: 'pyrolysisShare', display: 'pyrolysis-share-display', format: v => v + '%' },
+        { id: 'garage-cost', key: 'garageCost', display: 'garage-cost-display', format: v => '$' + v },
+        { id: 'transport-cost', key: 'transportCost', display: 'transport-cost-display', format: v => '$' + v },
+        { id: 'certification-cost', key: 'certificationCost', display: 'certification-cost-display', format: v => '$' + v },
+      ];
+
+      inputs.forEach(({ id, key, display, format }) => {
+        const input = document.getElementById(id);
+        const displayEl = document.getElementById(display);
+
+        // Initial fill
+        updateSliderFill(input);
+
+        input.addEventListener('input', (e) => {
+          const value = parseFloat(e.target.value);
+          state[key] = value;
+          displayEl.textContent = format(value);
+
+          // Update aria
+          input.setAttribute('aria-valuenow', value);
+
+          // Update fill
+          updateSliderFill(input);
+
+          updateUI();
+        });
+      });
+    }
+
+    // ACTOR SELECTION
+    function setupActorSelection() {
+      document.querySelectorAll('.chain-actor').forEach(actor => {
+        actor.addEventListener('click', () => {
+          document.querySelectorAll('.chain-actor').forEach(a => a.classList.remove('active'));
+          actor.classList.add('active');
+        });
+        actor.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            actor.click();
+          }
+        });
+      });
+    }
+
+    // YEAR SELECTOR
+    function setupYearSelector() {
+      document.querySelectorAll('.year-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const year = parseInt(btn.dataset.year);
+          selectYear(year);
+        });
+      });
+    }
+
+    function selectYear(year) {
+      currentYear = year;
+      const preset = YEAR_PRESETS[year];
+
+      // Update button states (sidebar)
+      document.querySelectorAll('.year-btn').forEach(btn => {
+        const isActive = parseInt(btn.dataset.year) === year;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-pressed', isActive);
+      });
+
+      // Update trajectory cards (main content)
+      document.querySelectorAll('.trajectory-card').forEach(card => {
+        card.classList.toggle('active', parseInt(card.dataset.year) === year);
+      });
+
+      // Update state with preset values
+      state.volume = preset.volume;
+      state.participation = preset.participation;
+
+      // Update slider values and displays
+      const volumeInput = document.getElementById('volume');
+      volumeInput.value = preset.volume;
+      volumeInput.setAttribute('aria-valuenow', preset.volume);
+      document.getElementById('volume-display').textContent = formatNumber(preset.volume) + ' t';
+      updateSliderFill(volumeInput);
+
+      const participationInput = document.getElementById('participation');
+      participationInput.value = preset.participation;
+      participationInput.setAttribute('aria-valuenow', preset.participation);
+      document.getElementById('participation-display').textContent = preset.participation + '%';
+      updateSliderFill(participationInput);
+
+      // Update header scenario label
+      document.getElementById('current-scenario').textContent = preset.label;
+
+      // Recalculate and update UI
+      updateUI();
+    }
+
+    // TRAJECTORY CARD CLICK
+    function setupTrajectoryCards() {
+      document.querySelectorAll('.trajectory-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const year = parseInt(card.dataset.year);
+          selectYear(year);
+        });
+        card.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            card.click();
+          }
+        });
+      });
+    }
+
+    // INIT
+    document.addEventListener('DOMContentLoaded', () => {
+      setupInputs();
+      setupActorSelection();
+      setupYearSelector();
+      setupTrajectoryCards();
+      // Set initial year to 1
+      selectYear(1);
+    });
+  </script>
+</body>
+</html>
