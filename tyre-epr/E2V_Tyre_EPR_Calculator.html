@@ -1981,6 +1981,7 @@
           updateSliderFill(input);
 
           updateUI();
+          Tracker.onSliderChange();
         });
       });
     }
@@ -2049,6 +2050,7 @@
 
       // Recalculate and update UI
       updateUI();
+      Tracker.onSliderChange();
     }
 
     // TRAJECTORY CARD CLICK
@@ -2067,6 +2069,107 @@
       });
     }
 
+    // ===== TRACKING SYSTEM =====
+    const Tracker = {
+      ENDPOINT: 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec', // Replace after deploying
+
+      sessionId: crypto.randomUUID(),
+      userId: new URLSearchParams(window.location.search).get('user') || 'anonymous',
+      startTime: Date.now(),
+      stableTimeout: null,
+      lastSentStateStr: null,
+      changeCount: 0,
+
+      init() {
+        window.addEventListener('beforeunload', () => this.send(true));
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'hidden') this.send(true);
+        });
+        console.log('[Tracker] Ready for user:', this.userId);
+      },
+
+      onSliderChange() {
+        this.changeCount++;
+        clearTimeout(this.stableTimeout);
+        console.log('[Tracker] Change detected, waiting 10s...');
+        this.stableTimeout = setTimeout(() => this.send(false), 10000);
+      },
+
+      send(isFinal) {
+        const currentStateStr = JSON.stringify(state);
+
+        // Skip if no changes or same config
+        if (this.changeCount === 0) return;
+        if (!isFinal && this.lastSentStateStr === currentStateStr) {
+          console.log('[Tracker] Same config, skipping');
+          return;
+        }
+        this.lastSentStateStr = currentStateStr;
+
+        const calc = calculateModel();
+        const payload = {
+          sessionId: this.sessionId,
+          userId: this.userId,
+          timestamp: new Date().toISOString(),
+          totalSessionSeconds: Math.round((Date.now() - this.startTime) / 1000),
+          totalChanges: this.changeCount,
+          isFinal: isFinal,
+          finalConfig: {
+            scenario: {
+              year: currentYear,
+              marketShare: state.participation,
+              volume: state.volume
+            },
+            inputs: {
+              totalMarket: CONFIG.MEXICO_TOTAL_MARKET,
+              petcokePrice: state.cokePrice,
+              tdfDiscount: state.discount,
+              garageFee: state.garageCost,
+              collectionFee: CONFIG.ACOPIADOR_RATE,
+              transportFee: state.transportCost,
+              shreddingFee: CONFIG.SHREDDING_COST,
+              certificationFee: state.certificationCost,
+              recyclingShare: state.recyclingShare,
+              cementShare: state.cementShare,
+              pyrolysisShare: state.pyrolysisShare
+            },
+            results: {
+              totalEcoFee: Math.round(calc.totalEcoFee),
+              ecoFeePerTonne: Math.round(calc.ecoFee),
+              e2vRevenue: Math.round(calc.e2vNet),
+              e2vMargin: 40,
+              geocycleSavings: Math.round(calc.geocycleTotalBenefit),
+              tdfPrice: Math.round(calc.tdfPrice)
+            }
+          },
+          configHistory: [{
+            scenario: { year: currentYear, marketShare: state.participation, volume: state.volume },
+            inputs: {...state},
+            results: {
+              totalEcoFee: Math.round(calc.totalEcoFee),
+              geocycleSavings: Math.round(calc.geocycleTotalBenefit),
+              e2vRevenue: Math.round(calc.e2vNet)
+            },
+            durationMs: Date.now() - this.startTime
+          }]
+        };
+
+        const formData = new URLSearchParams();
+        formData.append('data', JSON.stringify(payload));
+
+        console.log('[Tracker] Sending...', isFinal ? 'FINAL' : 'stable config');
+
+        if (isFinal && navigator.sendBeacon) {
+          navigator.sendBeacon(this.ENDPOINT, formData);
+        } else {
+          fetch(this.ENDPOINT, { method: 'POST', body: formData, keepalive: true })
+            .then(() => console.log('[Tracker] OK'))
+            .catch(e => console.log('[Tracker] Error:', e));
+        }
+      }
+    };
+    // ===== END TRACKING =====
+
     // INIT
     document.addEventListener('DOMContentLoaded', () => {
       setupInputs();
@@ -2075,6 +2178,8 @@
       setupTrajectoryCards();
       // Set initial year to 1
       selectYear(1);
+      // Init tracker
+      Tracker.init();
     });
   </script>
 </body>
