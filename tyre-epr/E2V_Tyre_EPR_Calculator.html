@@ -2071,7 +2071,7 @@
 
     // ===== TRACKING SYSTEM =====
     const Tracker = {
-      ENDPOINT: 'https://script.google.com/macros/s/AKfycbxMbhi3q0rxu8MlUKcR3p-qCJuxak-V7s95INF4WSChuwUyHS8w3t2w6_tJEcJ2w-JOew/exec',
+      ENDPOINT: 'https://script.google.com/macros/s/AKfycbwWYrZaykpLraQJBXknFEspe9-rJgWxqP8Jq9Qn6h9dQSfhSA-Eif_xeJ6mSe4zDUp6gw/exec',
 
       sessionId: crypto.randomUUID(),
       userId: new URLSearchParams(window.location.search).get('user') || 'anonymous',
@@ -2154,17 +2154,17 @@
           }]
         };
 
-        const formData = new URLSearchParams();
-        formData.append('data', JSON.stringify(payload));
-
         console.log('[Tracker] Sending...', isFinal ? 'FINAL' : 'stable config');
 
-        if (isFinal && navigator.sendBeacon) {
-          navigator.sendBeacon(this.ENDPOINT, formData);
-        } else {
-          fetch(this.ENDPOINT, { method: 'POST', body: formData, keepalive: true })
-            .then(() => console.log('[Tracker] OK'))
-            .catch(e => console.log('[Tracker] Error:', e));
+        // Use image beacon (GET) - most reliable cross-origin method
+        try {
+          const img = new Image();
+          const dataStr = encodeURIComponent(JSON.stringify(payload));
+          img.src = this.ENDPOINT + '?data=' + dataStr;
+          img.onload = () => console.log('[Tracker] OK');
+          img.onerror = () => console.log('[Tracker] Sent (beacon)');
+        } catch (e) {
+          console.log('[Tracker] Error:', e);
         }
       }
     };
