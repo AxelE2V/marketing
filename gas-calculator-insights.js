@@ -43,7 +43,14 @@ function doPost(e) {
         'Stability Score', 'Session Momentum', 'Savings Trend',
         'Conversion Probability (%)', 'Intent Signal',
         // Analysis (AE)
-        'Analysis Summary'
+        'Analysis Summary',
+        // Per-workflow breakdown (AF-AM)
+        'Incoming Savings (£)', 'Incoming Hours',
+        'PRN/EPR Savings (£)', 'PRN/EPR Hours',
+        'Mass Balance Savings (£)', 'Mass Balance Hours',
+        'COA Savings (£)', 'COA Hours',
+        // Final inputs (AN)
+        'Final Inputs (JSON)'
       ];
       sheet.appendRow(headers);
       sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
@@ -57,6 +64,8 @@ function doPost(e) {
         { range: [1, 17, 1, 6], color: '#E6F4EA' },   // Results - green
         { range: [1, 23, 1, 8], color: '#FCE8E6' },   // Behavioral - red
         { range: [1, 31, 1, 1], color: '#FFF3E0' },   // Summary - orange
+        { range: [1, 32, 1, 8], color: '#E8F5E9' },   // Per-workflow - light green
+        { range: [1, 40, 1, 1], color: '#F3E5F5' },   // Inputs JSON - lavender
       ];
       headerColors.forEach(h => {
         sheet.getRange(h.range[0], h.range[1], h.range[2], h.range[3]).setBackground(h.color);
@@ -102,7 +111,18 @@ function doPost(e) {
       data.conversionProb || 0,
       data.intentSignal || 'Cold',
       // Summary
-      analysis.summary
+      analysis.summary,
+      // Per-workflow breakdown
+      data.incomingSavings || 0,
+      data.incomingHours || 0,
+      data.prnSavings || 0,
+      data.prnHours || 0,
+      data.massBalanceSavings || 0,
+      data.massBalanceHours || 0,
+      data.coaSavings || 0,
+      data.coaHours || 0,
+      // Final inputs
+      data.finalInputs || ''
     ]);
 
     // Conditional formatting for Intent Signal (if first data row)
@@ -255,6 +275,42 @@ function applyConditionalFormatting(sheet) {
 }
 
 function doGet(e) {
+  const action = (e && e.parameter && e.parameter.action) || '';
+
+  if (action === 'getData') {
+    try {
+      const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+      const sheet = ss.getSheetByName(SHEET_NAME);
+
+      if (!sheet || sheet.getLastRow() <= 1) {
+        return ContentService
+          .createTextOutput(JSON.stringify({ rows: [] }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+
+      const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+      const dataRange = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn());
+      const data = dataRange.getValues();
+
+      const rows = data.map(function(row) {
+        var obj = {};
+        headers.forEach(function(header, idx) {
+          obj[header] = row[idx];
+        });
+        return obj;
+      });
+
+      return ContentService
+        .createTextOutput(JSON.stringify({ rows: rows }))
+        .setMimeType(ContentService.MimeType.JSON);
+
+    } catch (error) {
+      return ContentService
+        .createTextOutput(JSON.stringify({ error: error.toString(), rows: [] }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
   return ContentService
     .createTextOutput('E2V Calculator Insights — Mechanical Recycling Simulator Tracker')
     .setMimeType(ContentService.MimeType.TEXT);

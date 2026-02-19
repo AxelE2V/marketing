@@ -1245,6 +1245,17 @@ const Tracker = {
       savingsTrend: m.savingsTrend,
       conversionProb: m.conversionProb,
       intentSignal: m.intentSignal,
+      // Per-workflow savings breakdown
+      incomingSavings: m.finalState?.perWorkflow?.[0]?.total || 0,
+      incomingHours: m.finalState?.perWorkflow?.[0]?.hours || 0,
+      prnSavings: m.finalState?.perWorkflow?.[1]?.total || 0,
+      prnHours: m.finalState?.perWorkflow?.[1]?.hours || 0,
+      massBalanceSavings: m.finalState?.perWorkflow?.[2]?.total || 0,
+      massBalanceHours: m.finalState?.perWorkflow?.[2]?.hours || 0,
+      coaSavings: m.finalState?.perWorkflow?.[3]?.total || 0,
+      coaHours: m.finalState?.perWorkflow?.[3]?.hours || 0,
+      // Final input parameters per workflow (JSON)
+      finalInputs: JSON.stringify(m.finalState?.inputs || []),
       // Full history for GAS deep analysis
       configHistory: this.configHistory.slice(-20),
       finalState: m.finalState
