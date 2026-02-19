@@ -25,6 +25,30 @@ function doPost(e) {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
     let sheet = ss.getSheetByName(SHEET_NAME);
+
+    // Migrate: add per-workflow headers if sheet exists but misses them
+    if (sheet && sheet.getLastColumn() < 40) {
+      var existingCols = sheet.getLastColumn();
+      var newHeaders = [
+        'Incoming Savings (£)', 'Incoming Hours',
+        'PRN/EPR Savings (£)', 'PRN/EPR Hours',
+        'Mass Balance Savings (£)', 'Mass Balance Hours',
+        'COA Savings (£)', 'COA Hours',
+        'Final Inputs (JSON)'
+      ];
+      // Only add headers that don't exist yet (start after current last column)
+      var startCol = existingCols + 1;
+      var needed = newHeaders.slice(startCol - 32); // 32 = first new column (AF)
+      if (needed.length > 0 && startCol >= 32) {
+        sheet.getRange(1, startCol, 1, needed.length).setValues([needed]);
+        sheet.getRange(1, startCol, 1, needed.length).setFontWeight('bold');
+        sheet.getRange(1, startCol, 1, Math.min(needed.length, 8)).setBackground('#E8F5E9');
+        if (startCol + needed.length - 1 >= 40) {
+          sheet.getRange(1, 40, 1, 1).setBackground('#F3E5F5');
+        }
+      }
+    }
+
     if (!sheet) {
       sheet = ss.insertSheet(SHEET_NAME);
       const headers = [
