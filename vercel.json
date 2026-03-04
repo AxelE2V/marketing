@@ -1,6 +1,6 @@
 {
   "rewrites": [
     { "source": "/", "destination": "/mechanical-recycling-simulator.html" },
-    { "source": "/(.*)", "destination": "/mechanical-recycling-simulator.html" }
+    { "source": "/:path((?!.*\\.).*)", "destination": "/mechanical-recycling-simulator.html" }
   ]
 }
